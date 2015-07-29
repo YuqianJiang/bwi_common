@@ -32,6 +32,8 @@ at(R,n) :- goto(O,n), inside(O,R).
 % Static laws
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%you have to be somewhere
+:- 0{at(R,n):room(R)}0.
 %you can't be at two places at the some time
 -at(L2,n):- at(L1,n), room(L2), L1 != L2.
 %you can be facing only one door at a time

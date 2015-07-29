@@ -27,47 +27,51 @@ public:
          unsigned int max_time = 0
         ) throw();
 
-  ActionSet availableActions() const throw();
+  	ActionSet availableActions() const throw();
         
 	AnswerSet currentStateQuery(const std::vector<actasp::AspRule>& query) const throw();
 	
 	bool updateFluents(const std::vector<actasp::AspFluent> &observations) throw();
   
-  std::list< std::list<AspAtom> > query(const std::string &queryString, unsigned int initialTimeStep,
+  	std::list< std::list<AspAtom> > query(const std::string &queryString, unsigned int initialTimeStep,
                                    unsigned int finalTimeStep) const throw();
 	
 	bool isPlanValid(const AnswerSet& plan, const std::vector<actasp::AspRule>& goal)  const throw();
   
-  void reset() throw();
+  	void reset() throw();
 
 	AnswerSet computePlan(const std::vector<actasp::AspRule>& goal) const throw ();
 	
 	std::vector< AnswerSet> computeAllPlans(const std::vector<actasp::AspRule>& goal, double suboptimality) const throw ();
 	
 	MultiPolicy computePolicy(const std::vector<actasp::AspRule>& goal, double suboptimality) const throw (std::logic_error);
+	MultiPolicy computePolicy(const std::vector<actasp::AspRule>& goal, double suboptimality, bool finalState) const throw (std::logic_error);
 	
 	void setMaxTimeStep(unsigned int max_n) throw() {
 		this->max_n = max_n;
-  }
+  	}
+
+  	AnswerSet filterState(const std::vector<actasp::AnswerSet>& plans, const std::vector<actasp::AspRule>& goals);
+  	std::set<AspFluent> actionEffects(const AspFluent& action, const std::set<AspFluent>& state);
 
 private:
 
 	unsigned int max_n;
-  std::string incrementalVar;
-  unsigned int max_time;
+  	std::string incrementalVar;
+  	unsigned int max_time;
 	std::string queryDir;
 	std::string domainDir;
-  ActionSet allActions;
-  std::string actionFilter;
+  	ActionSet allActions;
+  	std::string actionFilter;
 
-	std::string generatePlanQuery(std::vector<actasp::AspRule> goalRules,
-									bool filterActions) const throw();
+	std::string generatePlanQuery(std::vector<actasp::AspRule> goalRules, bool filterActions) const throw();
 
 	std::list<actasp::AnswerSet> krQuery(	const std::string& query, 
 											unsigned int initialTimeStep,
-                      unsigned int finalTimeStep,
+                      						unsigned int finalTimeStep,
 											const std::string& fileName, 
-											unsigned int answerSetsNumber) const throw();
+											unsigned int answerSetsNumber,
+											bool useCurrentFile) const throw();
                       
 
 };

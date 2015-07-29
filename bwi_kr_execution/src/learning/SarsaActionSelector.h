@@ -5,6 +5,9 @@
 #include <actasp/ExecutionObserver.h>
 #include <actasp/state_utils.h>
 #include <actasp/actaspfwd.h>
+#include <actasp/AspFluent.h>
+
+#include <actasp/MultiPolicy.h>
 
 
 
@@ -37,12 +40,20 @@ public:
 
   void actionStarted(const actasp::AspFluent& action) throw();
   void actionTerminated(const actasp::AspFluent& action) throw();
+
+  void policyChanged(actasp::MultiPolicy& newPolicy) throw();
+  void goalChanged(std::vector<actasp::AspRule> newGoalRules) throw();
   
+  //for value:
   void readFrom(std::istream & fromStream) throw();
   void writeTo(std::ostream & toStream) throw();
+
+  //for notFilteredToFiltered:
+  void readMapFrom(std::istream & fromStream) throw();
+  void writeMapTo(std::ostream & toStream) throw();
   
   void episodeEnded() throw();
-  
+
   void saveValueInitialState(const std::string& fileName);
 
 
@@ -61,10 +72,18 @@ private:
 
   StateActionMap value;
   StateActionMap e;
-  State initial;
-  State final;
+  State initial; 
+  State initialNotFiltered;
+  State final; 
+  State finalNotFiltered;
   actasp::AspFluent previousAction;
   double v_s;
+
+  //for filterstate:
+  actasp::MultiPolicy policy;
+  std::vector<actasp::AspRule> goalRules;
+  std::map< State, State, actasp::StateComparator<actasp::AspFluent> > notFilteredToFiltered;
+  bool stateCompare(const std::set<actasp::AspFluent> state, const std::set<actasp::AspFluent> otherstate);
 
 };
 

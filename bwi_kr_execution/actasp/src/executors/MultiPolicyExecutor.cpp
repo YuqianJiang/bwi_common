@@ -10,8 +10,7 @@
 
 #include <algorithm>
 #include <iterator>
-
-#include <ros/ros.h>
+#include <fstream>
 
 using namespace std;
 
@@ -45,12 +44,16 @@ MultiPolicyExecutor::~MultiPolicyExecutor() {
   
 void  MultiPolicyExecutor::setGoal(const std::vector<actasp::AspRule>& goalRules) throw() {
 
+  selector->goalChanged(goalRules); //update
+
   this->goalRules = goalRules;
 
   isGoalReached = kr->currentStateQuery(goalRules).isSatisfied();
 
-  if (!isGoalReached)
-    policy = planner->computePolicy(goalRules,suboptimality);
+  if (!isGoalReached) {
+    policy = planner->computePolicy(goalRules,suboptimality, true);
+    selector->policyChanged(policy); //update
+  }
 
   hasFailed = policy.empty();
   delete active;
@@ -111,10 +114,9 @@ void MultiPolicyExecutor::executeActionStep() {
       //there's no action for this state, computing more plans
 
       //if the last action failed, we may want to have some more options
-      
-
-      MultiPolicy otherPolicy = planner->computePolicy(goalRules,suboptimality);
-      policy.merge(otherPolicy);
+      MultiPolicy otherPolicy = planner->computePolicy(goalRules,suboptimality, true);
+      policy.merge(otherPolicy, true);
+      selector->policyChanged(policy);
 
       options = policy.actions(state);
       if (options.empty()) { //no actions available from here!
