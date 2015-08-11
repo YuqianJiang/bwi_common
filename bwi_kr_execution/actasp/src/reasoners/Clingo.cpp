@@ -204,12 +204,8 @@ std::list<actasp::AnswerSet> Clingo::krQuery(const std::string& query,
 
   stringstream commandLine;
 
-  //const string outputFilePath = queryDir + "query_output.txt";
+  //this makes it waaay more clear:
   string outputFilePath = queryDir + fileName.substr(0,fileName.length()-4) + "_output.txt";
-  //if (useCurrentFile)
-    //outputFilePath = queryDir + "query_output.txt";
-  //else //filterstate
-    //outputFilePath = queryDir + "filter_output.txt";
 
   if (max_time > 0 && useCurrentFile) {
     commandLine << "timeout -k 1 " << max_time << " ";
@@ -525,7 +521,7 @@ MultiPolicy Clingo::computePolicy(const std::vector<actasp::AspRule>& goal, doub
 
 }
 
- //overload of above
+ //overload of above, this version in used for filterstate
 MultiPolicy Clingo::computePolicy(const std::vector<actasp::AspRule>& goal, double suboptimality, bool finalState) const throw (std::logic_error) {
 
   if (suboptimality < 1) {
@@ -537,7 +533,7 @@ MultiPolicy Clingo::computePolicy(const std::vector<actasp::AspRule>& goal, doub
   string query = generatePlanQuery(goal,false);
 
   //clock_t kr1_begin = clock();
-  list<AnswerSet> firstAnswerSets = krQuery(query,1,max_n,"planQuery.asp",0);
+  list<AnswerSet> firstAnswerSets = krQuery(query,1,max_n,"firstPlanQuery.asp",0);
   //clock_t kr1_end = clock();
   //cout << "The first kr call took " << (double(kr1_end - kr1_begin) / CLOCKS_PER_SEC) << " seconds" << endl;
 
@@ -564,7 +560,7 @@ MultiPolicy Clingo::computePolicy(const std::vector<actasp::AspRule>& goal, doub
 
   //clock_t kr2_begin = clock();
 
-  list<AnswerSet> answerSets = krQuery(query,shortestLength+1,maxLength-1,"planQuery.asp",0); //READ COMMENT BELOW
+  list<AnswerSet> answerSets = krQuery(query,shortestLength+1,maxLength-1,"secondPlanQuery.asp",0); //READ COMMENT BELOW
   //shortestLength+1: we want plans LONGER than the shortest ones, so they need to start 1 step higher than them. 
   //maxLength-1: with clingo4, stuff starts from 1, so if you only put maxLength like it was before, you get an extra step you did not want. 
 
