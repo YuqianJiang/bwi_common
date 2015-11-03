@@ -29,6 +29,11 @@ struct AspKR : public actasp::MultiPlanner {
 	virtual bool isPlanValid(const AnswerSet& plan, const std::vector<actasp::AspRule>& goal)  const throw() = 0;
   
   virtual void reset() throw() = 0;
+
+  //filterstate stuff:
+  virtual MultiPolicy computePolicy(const std::vector<actasp::AspRule>& goal, double suboptimality, bool finalState) const throw (std::logic_error) = 0;
+  virtual AnswerSet filterState(const std::vector<actasp::AnswerSet>& plans, const std::vector<actasp::AspRule>& goals) = 0;
+  virtual std::set<AspFluent> actionEffects(const AspFluent& action, const std::set<AspFluent>& state) = 0;
 	
 	virtual ~AspKR() {}
 };

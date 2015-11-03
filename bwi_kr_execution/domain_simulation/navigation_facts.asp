@@ -171,11 +171,11 @@ hasdoor(l3_432,d3_432).
 
 
 
-hasdoor(l3test_500,d3test_414a2). 
-hasdoor(l3test_414a,d3test_414a2). 
+%hasdoor(l3test_500,d3test_414a2). 
+%hasdoor(l3test_414a,d3test_414a2).
 
-hasdoor(l3test_414a,d3test_414a1).
-hasdoor(l3test_400,d3test_414a1).
+%hasdoor(l3test_414a,d3test_414a1).
+%hasdoor(l3test_400,d3test_414a1).
 
 hasdoor(l3test_400,d3test_402).
 hasdoor(l3test_402,d3test_402).

@@ -34,6 +34,10 @@ add_executable(simulator_learning_tasks_node src/simulator_learning_tasks.cpp)
 add_dependencies(simulator_learning_tasks_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(simulator_learning_tasks_node ${catkin_LIBRARIES})
 
+add_executable(filtering_tasks src/test_filter_task.cpp)
+add_dependencies(filtering_tasks ${catkin_EXPORTED_TARGETS})
+target_link_libraries(filtering_tasks ${catkin_LIBRARIES})
+
 add_executable(learning_tasks_node src/learning_tasks.cpp)
 add_dependencies(learning_tasks_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(learning_tasks_node ${catkin_LIBRARIES})

@@ -27,6 +27,7 @@ facing(O,n) :- goto(O,n).
 beside(O,n) :- goto(O,n).
 at(R,n) :- goto(O,n), inside(O,R).
 :- goto(O,n), inside(O,R1), at(R2,n-1), not acc(R1,R2).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Static laws

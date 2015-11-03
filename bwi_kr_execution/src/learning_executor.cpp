@@ -31,7 +31,7 @@
 
 const int MAX_N = 20;
 const std::string queryDirectory("/tmp/bwi_action_execution/");
-const std::string value_directory_base("/var/tmp/bwi_action_execution/");
+const std::string value_directory_base("/var/tmp/my_bwi_action_execution/");
 std::string valueDirectory;
 
 
@@ -140,6 +140,8 @@ void initiateTask(const bwi_kr_execution::ExecutePlanGoalConstPtr& plan, string 
 
   transform(plan->aspGoal.begin(),plan->aspGoal.end(),back_inserter(goalRules),TranslateRule());
 
+  executor->setGoal(goalRules); //this has to be before selector->savevalueinitial
+
   valueFileName = rulesToFileName(goalRules);
   ifstream valueFileIn(valueFileName.c_str());
   selector->readFrom(valueFileIn);
@@ -147,8 +149,6 @@ void initiateTask(const bwi_kr_execution::ExecutePlanGoalConstPtr& plan, string 
   selector->saveValueInitialState(valueFileName + "_initial"); 
   
   action_logger->setFile((valueFileName+"_actions"));
-    
-  executor->setGoal(goalRules);
   
   //very practical C way of getting the current hour of day
   time_t rawtime;
@@ -245,7 +245,7 @@ int main(int argc, char**argv) {
 
   boost::filesystem::create_directories(queryDirectory);
   
-  AspKR *reasoner = new RemoteReasoner(MAX_N,queryDirectory,domainDirectory,actionMapToSet(ActionFactory::actions()),10);
+  AspKR *reasoner = new RemoteReasoner(MAX_N,queryDirectory,domainDirectory,actionMapToSet(ActionFactory::actions()),15);
   StaticFacts::retrieveStaticFacts(reasoner, domainDirectory);
 
   TimeReward<SarsaActionSelector::State> *reward = new TimeReward<SarsaActionSelector::State>();

@@ -30,6 +30,10 @@ namespace bwi_krexec {
   void reset() throw();
 
   actasp::MultiPolicy computePolicy(const std::vector<actasp::AspRule>& goal, double suboptimality) const throw (std::logic_error);
+
+  actasp::MultiPolicy computePolicy(const std::vector<actasp::AspRule>& goal, double suboptimality, bool finalState) const throw (std::logic_error); //filterstate stuff
+  actasp::AnswerSet filterState(const std::vector<actasp::AnswerSet>& plans, const std::vector<actasp::AspRule>& goals); //filterstate stuff
+  std::set<actasp::AspFluent> actionEffects(const actasp::AspFluent& action, const std::set<actasp::AspFluent>& state); //filterstate stuff
   
   actasp::AnswerSet computePlan(const std::vector<actasp::AspRule>& goal) const throw (std::logic_error);
   

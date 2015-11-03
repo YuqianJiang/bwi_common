@@ -81,6 +81,22 @@ actasp::MultiPolicy RemoteReasoner::computePolicy(const std::vector<actasp::AspR
   return local.computePolicy(goal,suboptimality);
 }
 
+actasp::MultiPolicy RemoteReasoner::computePolicy(const std::vector<actasp::AspRule>& goal, 
+                                  double suboptimality, bool finalstate) const throw (std::logic_error) {
+ 
+  return local.computePolicy(goal,suboptimality, finalstate);
+}
+
+actasp::AnswerSet RemoteReasoner::filterState(const std::vector<actasp::AnswerSet>& plans, const std::vector<actasp::AspRule>& goals) {
+  return local.filterState(plans, goals);
+}
+
+std::set<actasp::AspFluent> RemoteReasoner::actionEffects(const actasp::AspFluent& action, const std::set<actasp::AspFluent>& state) {
+  return local.actionEffects(action, state);
+} 
+
+  
+
 void RemoteReasoner::reset() throw() {
   NodeHandle n;
   ros::ServiceClient resetClient = n.serviceClient<std_srvs::Empty> ( "reset_state" );
