@@ -873,6 +873,7 @@ AnswerSet Clingo::filterState(const std::vector<actasp::AnswerSet>& plans, const
   AnswerSet allFluents = currentStateQuery(vector<AspRule>());
   std::vector<actasp::AspFluent> allFluentsSet = allFluents.getFluents();
 
+
   //if all the fluents from the current state are those we do not want to filter, just retunr those 
   bool nothingTODO = true;
   std::vector<actasp::AspFluent>::const_iterator QueryFluent = allFluentsSet.begin();
@@ -895,6 +896,7 @@ AnswerSet Clingo::filterState(const std::vector<actasp::AnswerSet>& plans, const
     stringstream namearity;
     namearity << fluent->getName() << "/" << fluent->arity();
     if (std::find(nofilter.begin(), nofilter.end(), namearity.str()) == nofilter.end()) { //not in the nofilter list, need to set 0 or 1
+
       fluentsString << "0{" << fluent->toString() << "}1." << endl;
     }
     else { //fluent has to stay

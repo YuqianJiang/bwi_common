@@ -79,6 +79,7 @@ actasp::ActionSet::const_iterator SarsaActionSelector::choose(const actasp::Acti
   set<AspFluent> currentSet(currentState.getFluents().begin(), currentState.getFluents().end()); //not filtered
   set<AspFluent> stateFluents; //filtered
 
+
   if (FILTER) {
 
   // check if State "currentSet" is in the notFilteredToFiltered map .. 
