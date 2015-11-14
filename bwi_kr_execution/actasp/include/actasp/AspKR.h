@@ -23,18 +23,12 @@ struct AspKR : public actasp::MultiPlanner {
 	virtual bool updateFluents(const std::vector<actasp::AspFluent> &observations) throw() = 0;
   
   //most general query, doesn't try to parse the result into fluents
-  virtual std::list< std::list<AspAtom> > query(const std::string &queryString, unsigned int initialTimeStep,
-                                   unsigned int finalTimeStep) const throw() = 0;
+  virtual std::list< std::list<AspAtom> > query(const std::string &queryString, unsigned int timestep) const throw() = 0;
 	
 	virtual bool isPlanValid(const AnswerSet& plan, const std::vector<actasp::AspRule>& goal)  const throw() = 0;
   
-  virtual void reset() throw() = 0;
+  virtual void resetCurrentState() throw() = 0;
 
-  //filterstate stuff:
-  virtual MultiPolicy computePolicy(const std::vector<actasp::AspRule>& goal, double suboptimality, bool finalState) const throw (std::logic_error) = 0;
-  virtual AnswerSet filterState(const std::vector<actasp::AnswerSet>& plans, const std::vector<actasp::AspRule>& goals) = 0;
-  virtual std::set<AspFluent> actionEffects(const AspFluent& action, const std::set<AspFluent>& state) = 0;
-	
 	virtual ~AspKR() {}
 };
 	

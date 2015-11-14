@@ -11,7 +11,8 @@
 #include "bwi_kr_execution/ExecutePlanAction.h"
 
 #include "actasp/action_utils.h"
-#include "actasp/executors/MultiPolicyExecutor.h"
+#include "actasp/executors/PartialPolicyExecutor.h"
+#include <actasp/reasoners/Clingo4_2.h>
 
 #include "actions/ActionFactory.h"
 #include "actions/LogicalNavigation.h"
@@ -66,6 +67,11 @@ struct Observer : public ExecutionObserver {
   void actionTerminated(const AspFluent& action) throw() {
     ROS_INFO_STREAM("Terminating execution: " << action.toString());
   }
+  
+    
+  void goalChanged(std::vector<actasp::AspRule> newGoalRules) throw() {}
+  
+  void policyChanged(PartialPolicy* policy) throw() {}
 
 };
 
@@ -245,7 +251,8 @@ int main(int argc, char**argv) {
 
   boost::filesystem::create_directories(queryDirectory);
   
-  AspKR *reasoner = new RemoteReasoner(MAX_N,queryDirectory,domainDirectory,actionMapToSet(ActionFactory::actions()),30);
+  FilteringQueryGenerator *generator = new Clingo4_2("n",queryDirectory,domainDirectory,actionMapToSet(ActionFactory::actions()),30);
+  FilteringKR *reasoner = new RemoteReasoner(generator,MAX_N,actionMapToSet(ActionFactory::actions()));
 
   StaticFacts::retrieveStaticFacts(reasoner, domainDirectory);
 
@@ -260,7 +267,7 @@ int main(int argc, char**argv) {
   
   selector = new SarsaActionSelector(reasoner,timeValue,reward,params);
   
-  executor = new MultiPolicyExecutor(reasoner, reasoner,selector,ActionFactory::actions(),1.5);
+  executor = new PartialPolicyExecutor(reasoner, reasoner,selector,ActionFactory::actions(),1.5);
   executor->addExecutionObserver(selector);
   executor->addExecutionObserver(reward);
 
@@ -289,6 +296,7 @@ int main(int argc, char**argv) {
   delete timeValue;
   delete reward;
   delete reasoner;
+  delete generator;
 
   return 0;
 }

@@ -1,4 +1,4 @@
-#include <actasp/executors/MultiPolicyExecutor.h>
+#include <actasp/executors/PartialPolicyExecutor.h>
 
 #include <actasp/AspKR.h>
 #include <actasp/MultiPlanner.h>
@@ -10,13 +10,13 @@
 
 #include <algorithm>
 #include <iterator>
-#include <fstream>
+#include <functional>
 
 using namespace std;
 
 namespace actasp {
 
-MultiPolicyExecutor::MultiPolicyExecutor(AspKR* kr, MultiPlanner *planner, ActionSelector *selector, 
+PartialPolicyExecutor::PartialPolicyExecutor(AspKR* kr, MultiPlanner *planner, ActionSelector *selector, 
                       const std::map<std::string, Action * >& actionMap, double suboptimality) :
                     
                     isGoalReached(false),
@@ -27,7 +27,7 @@ MultiPolicyExecutor::MultiPolicyExecutor(AspKR* kr, MultiPlanner *planner, Actio
                     kr(kr),
                     planner(planner),
                     goalRules(),
-                    policy(actionMapToSet(actionMap)),
+                    policy(new MultiPolicy(actionMapToSet(actionMap))),
                     suboptimality(suboptimality),
                     selector(selector),
                     actionMap(),
@@ -36,37 +36,40 @@ MultiPolicyExecutor::MultiPolicyExecutor(AspKR* kr, MultiPlanner *planner, Actio
   transform(actionMap.begin(),actionMap.end(),inserter(this->actionMap,this->actionMap.end()),ActionMapDeepCopy());
 }
 
-MultiPolicyExecutor::~MultiPolicyExecutor() {
+PartialPolicyExecutor::~PartialPolicyExecutor() {
   delete active;
   for_each(actionMap.begin(),actionMap.end(),ActionMapDelete());
+  delete policy;
 }
   
   
-void  MultiPolicyExecutor::setGoal(const std::vector<actasp::AspRule>& goalRules) throw() {
-
-  selector->goalChanged(goalRules); //update
+void  PartialPolicyExecutor::setGoal(const std::vector<actasp::AspRule>& goalRules) throw() {
 
   this->goalRules = goalRules;
 
   isGoalReached = kr->currentStateQuery(goalRules).isSatisfied();
 
   if (!isGoalReached) {
-    policy = planner->computePolicy(goalRules,suboptimality, true);
-    selector->policyChanged(policy); //update
+    delete policy;
+    policy = planner->computePolicy(goalRules,suboptimality);
+    //TODO do the same for the other notifications, and get rid of helper classes?
+    for_each(executionObservers.begin(),executionObservers.end(),bind2nd(mem_fun(&ExecutionObserver::policyChanged),policy));
   }
 
-  hasFailed = policy.empty();
+  hasFailed = policy->empty();
   delete active;
   active = NULL;
   actionCounter = 0;
   newAction = true;
+  
+  for_each(executionObservers.begin(),executionObservers.end(),NotifyGoalChanged(goalRules));
 
 }
 
-bool MultiPolicyExecutor::goalReached() const throw() {
+bool PartialPolicyExecutor::goalReached() const throw() {
   return isGoalReached;
 }
-bool MultiPolicyExecutor::failed() const throw() {
+bool PartialPolicyExecutor::failed() const throw() {
   return hasFailed;
 }
 
@@ -80,7 +83,7 @@ static Action *instantiateAction(const std::map<std::string, Action * >& actionM
 }
 
 
-void MultiPolicyExecutor::executeActionStep() {
+void PartialPolicyExecutor::executeActionStep() {
   if (isGoalReached || hasFailed)
     return;
   
@@ -108,17 +111,20 @@ void MultiPolicyExecutor::executeActionStep() {
     //choose the next action
     AnswerSet currentState = kr->currentStateQuery(vector<AspRule>());
     set<AspFluent> state(currentState.getFluents().begin(), currentState.getFluents().end());
-    ActionSet options = policy.actions(state);
+    ActionSet options = policy->actions(state);
 
     if (options.empty() || (active != NULL &&  active->hasFailed())) {
       //there's no action for this state, computing more plans
 
       //if the last action failed, we may want to have some more options
-      MultiPolicy otherPolicy = planner->computePolicy(goalRules,suboptimality, true);
-      policy.merge(otherPolicy, true);
-      selector->policyChanged(policy);
+      
 
-      options = policy.actions(state);
+      PartialPolicy *otherPolicy = planner->computePolicy(goalRules,suboptimality);
+      policy->merge(otherPolicy);
+      delete otherPolicy;
+      for_each(executionObservers.begin(),executionObservers.end(),bind2nd(mem_fun(&ExecutionObserver::policyChanged),policy));
+
+      options = policy->actions(state);
       if (options.empty()) { //no actions available from here!
         hasFailed = true;
         return;
@@ -137,11 +143,11 @@ void MultiPolicyExecutor::executeActionStep() {
 
 }
 
-void MultiPolicyExecutor::addExecutionObserver(ExecutionObserver *observer) throw() {
+void PartialPolicyExecutor::addExecutionObserver(ExecutionObserver *observer) throw() {
   executionObservers.push_back(observer);
 }
 
-void MultiPolicyExecutor::removeExecutionObserver(ExecutionObserver *observer) throw() {
+void PartialPolicyExecutor::removeExecutionObserver(ExecutionObserver *observer) throw() {
   executionObservers.remove(observer);
 }
 

@@ -45,10 +45,10 @@ using namespace actasp;
 
 namespace bwi_krexec {
 
-SarsaActionSelector::SarsaActionSelector(actasp::AspKR* reasoner, DefaultActionValue *defval,
+SarsaActionSelector::SarsaActionSelector(actasp::FilteringKR* reasoner, DefaultActionValue *defval,
     RewardFunction<State>*reward, const SarsaParams& p) :
   reasoner(reasoner), defval(defval), p(p), reward(reward),value(),e(),
-  initial(), final(), previousAction("nopreviousaction(0)"), v_s(0), policy() {}
+  initial(), final(), previousAction("nopreviousaction(0)"), v_s(0), policy(NULL) {}
 
 struct CompareValues {
 
@@ -56,11 +56,11 @@ struct CompareValues {
 
   bool operator()(const AspFluent& first, const AspFluent& second) {
     //if (value[first] == value[second]) {
-      //choose whether true or false randomly to remove alphabetical bias .. this also good in grid but not robots
+    //choose whether true or false randomly to remove alphabetical bias .. this also good in grid but not robots
     //  return (rand() < 0.5*RAND_MAX);
     //}
     //else {
-      return value[first] < value[second];
+    return value[first] < value[second];
     //}
   }
 
@@ -74,27 +74,26 @@ actasp::ActionSet::const_iterator SarsaActionSelector::choose(const actasp::Acti
   copy(options.begin(), options.end(), ostream_iterator<string>(ss, " "));
   ss << endl;
 
-  AnswerSet currentState = reasoner->currentStateQuery(vector<AspRule>());   
+  AnswerSet currentState = reasoner->currentStateQuery(vector<AspRule>());
 
   set<AspFluent> currentSet(currentState.getFluents().begin(), currentState.getFluents().end()); //not filtered
   set<AspFluent> stateFluents; //filtered
 
 
-  if (FILTER) {
+  if (FILTER && policy != NULL) {
 
-  // check if State "currentSet" is in the notFilteredToFiltered map .. 
-  // map is cleared when goal changes, so must be valid if there is. 
-  set<AspFluent> &filtered = notFilteredToFiltered[currentSet];
-  if (!filtered.empty()) { //there is already the filtered state in the map
-    stateFluents = filtered;
-  }
-  else { //not on the map, need to compute filtered state
-    vector<AnswerSet> plansFromHere = policy.plansFrom(currentSet);
-    AnswerSet filteredCurrentState = reasoner->filterState(plansFromHere, goalRules);
-    set<AspFluent> temp(filteredCurrentState.getFluents().begin(), filteredCurrentState.getFluents().end());
-    stateFluents = temp;
-    filtered = stateFluents;
-  }
+    // check if State "currentSet" is in the notFilteredToFiltered map ..
+    // map is cleared when goal changes, so must be valid if there is.
+    set<AspFluent> &filtered = notFilteredToFiltered[currentSet];
+    if (!filtered.empty()) { //there is already the filtered state in the map
+      stateFluents = filtered;
+    } else { //not on the map, need to compute filtered state
+      vector<AnswerSet> plansFromHere = policy->plansFrom(currentSet);
+      AnswerSet filteredCurrentState = reasoner->filterState(plansFromHere, goalRules);
+      set<AspFluent> temp(filteredCurrentState.getFluents().begin(), filteredCurrentState.getFluents().end());
+      stateFluents = temp;
+      filtered = stateFluents;
+    }
 
   } //end of if filter
 
@@ -104,13 +103,13 @@ actasp::ActionSet::const_iterator SarsaActionSelector::choose(const actasp::Acti
 
   // cout << "state: ";
   // set<AspFluent>::iterator printing = stateFluents.begin();
-  // for (; printing != stateFluents.end(); ++printing) 
+  // for (; printing != stateFluents.end(); ++printing)
   //   cout << printing->toString() << " ";
   // cout << "  ";
 
   ActionSet::const_iterator optIt = options.begin();
   for (; optIt != options.end(); ++optIt) {
-    
+
     ActionValueMap &thisState = value[stateFluents];
 
     if (thisState.find(*optIt) == thisState.end()) {
@@ -119,7 +118,7 @@ actasp::ActionSet::const_iterator SarsaActionSelector::choose(const actasp::Acti
     }
     ss << value[stateFluents][*optIt] << " ";
   }
-  
+
   ROS_DEBUG(ss.str());
 
   ROS_INFO_STREAM(ss.str());
@@ -157,7 +156,7 @@ actasp::ActionSet::const_iterator SarsaActionSelector::choose(const actasp::Acti
 }
 
 void printE(SarsaActionSelector::StateActionMap &e) {
-    cout << "--- E table ---" << endl;
+  cout << "--- E table ---" << endl;
   SarsaActionSelector::StateActionMap::iterator state = e.begin();
   for (; state != e.end(); ++state) {
     SarsaActionSelector::ActionValueMap::iterator action = state->second.begin();
@@ -170,10 +169,10 @@ void printE(SarsaActionSelector::StateActionMap &e) {
 }
 
 void SarsaActionSelector::updateValue(double v_s_prime) {
-  
-  
+
+
 //   printE(e);
-  
+
   double rew = reward->r(initial,previousAction,final);
 
   double delta = rew + p.gamma * v_s_prime - v_s;
@@ -216,7 +215,7 @@ void SarsaActionSelector::updateValue(double v_s_prime) {
     }
 
   }
-  
+
 //   printE(e);
 
   v_s = v_s_prime;
@@ -225,13 +224,16 @@ void SarsaActionSelector::updateValue(double v_s_prime) {
 
 
 //used for filterstate:
-void SarsaActionSelector::policyChanged(MultiPolicy& newPolicy) throw() {
-  policy = newPolicy; //update
+void SarsaActionSelector::policyChanged(PartialPolicy* newPolicy) throw() {
+  policy = dynamic_cast<GraphPolicy*>(newPolicy); //update
+  if(policy == NULL)
+    throw runtime_error("the new policy is not a GraphPolicy, SarsaActionSelector cannot continue");
 }
+
 void SarsaActionSelector::goalChanged(std::vector<actasp::AspRule> newGoalRules) throw() {
   goalRules = newGoalRules; //update
   if (!(newGoalRules == goalRules)) {
-    notFilteredToFiltered.clear(); //not valid anymore 
+    notFilteredToFiltered.clear(); //not valid anymore
   }
 }
 bool SarsaActionSelector::stateCompare(const std::set<actasp::AspFluent> state, const std::set<actasp::AspFluent> otherstate) {
@@ -240,7 +242,7 @@ bool SarsaActionSelector::stateCompare(const std::set<actasp::AspFluent> state, 
   }
   std::set<actasp::AspFluent>::const_iterator thisIt = state.begin();
   std::set<actasp::AspFluent>::const_iterator otherIt = otherstate.begin();
-  for(; thisIt!=state.end(); ++thisIt) {
+  for (; thisIt!=state.end(); ++thisIt) {
     std::string thisstring = thisIt->toString(0);
     std::string otherstring = otherIt->toString(0);
     if (thisstring.compare(otherstring)!=0) { //different
@@ -248,34 +250,33 @@ bool SarsaActionSelector::stateCompare(const std::set<actasp::AspFluent> state, 
     }
     ++otherIt;
   }
-  return true; 
+  return true;
 }
 
 
 void SarsaActionSelector::actionStarted(const AspFluent&) throw() {
 
-  AnswerSet state = reasoner->currentStateQuery(vector<AspRule>());   
-  initialNotFiltered.clear();   
-  initialNotFiltered.insert(state.getFluents().begin(), state.getFluents().end());                                        
+  AnswerSet state = reasoner->currentStateQuery(vector<AspRule>());
+  initialNotFiltered.clear();
+  initialNotFiltered.insert(state.getFluents().begin(), state.getFluents().end());
   initial.clear();
 
-  if (FILTER) {
+  if (FILTER && policy != NULL) {
 
-  set<AspFluent> &filtered = notFilteredToFiltered[initialNotFiltered];
-  if (!filtered.empty()) { //there is already the filtered state in the map
-    initial = filtered;
-  }
-  else {
-    std::vector<actasp::AnswerSet> plansFromHere = policy.plansFrom(initialNotFiltered);
-    AnswerSet filteredState = reasoner->filterState(plansFromHere, goalRules);                                                            
-    initial.insert(filteredState.getFluents().begin(), filteredState.getFluents().end());
-    filtered = initial;
-  }
+    set<AspFluent> &filtered = notFilteredToFiltered[initialNotFiltered];
+    if (!filtered.empty()) { //there is already the filtered state in the map
+      initial = filtered;
+    } else {
+      std::vector<actasp::AnswerSet> plansFromHere = policy->plansFrom(initialNotFiltered);
+      AnswerSet filteredState = reasoner->filterState(plansFromHere, goalRules);
+      initial.insert(filteredState.getFluents().begin(), filteredState.getFluents().end());
+      filtered = initial;
+    }
 
   } // end of if filter
 
   else { // no filter
-   initial.insert(state.getFluents().begin(), state.getFluents().end());
+    initial.insert(state.getFluents().begin(), state.getFluents().end());
   }
 }
 
@@ -292,37 +293,36 @@ void SarsaActionSelector::actionTerminated(const AspFluent& action) throw() {
   }
 
 
-  AnswerSet state = reasoner->currentStateQuery(vector<AspRule>());   
-  finalNotFiltered.clear();      
-  finalNotFiltered.insert(state.getFluents().begin(), state.getFluents().end());                                     
+  AnswerSet state = reasoner->currentStateQuery(vector<AspRule>());
+  finalNotFiltered.clear();
+  finalNotFiltered.insert(state.getFluents().begin(), state.getFluents().end());
   final.clear();
 
-  if (FILTER) {
-  set<AspFluent> &filtered = notFilteredToFiltered[finalNotFiltered]; //check if we already filtered this. 
-  if (!filtered.empty()) { //there is already the filtered state in the map
-    final = filtered;
-  }
-  else {
-    // this optimization is useful in grid environment, but not really in the robots
-    //set<AspFluent> expected = policy.nextExpected(initialNotFiltered,action); //first, check if the not filtered state was expected.
-    //if (stateCompare(expected, finalNotFiltered)) { //final is as expected by policy, so final can be derived from initial
+  if (FILTER && policy != NULL) {
+    set<AspFluent> &filtered = notFilteredToFiltered[finalNotFiltered]; //check if we already filtered this.
+    if (!filtered.empty()) { //there is already the filtered state in the map
+      final = filtered;
+    } else {
+      // this optimization is useful in grid environment, but not really in the robots
+      //set<AspFluent> expected = policy.nextExpected(initialNotFiltered,action); //first, check if the not filtered state was expected.
+      //if (stateCompare(expected, finalNotFiltered)) { //final is as expected by policy, so final can be derived from initial
       //final = reasoner->actionEffects(action, initial);
       //filtered = final;
-    //}
-    //else { //really need to compute filtered..
-      std::vector<actasp::AnswerSet> plansFromHere = policy.plansFrom(finalNotFiltered);
+      //}
+      //else { //really need to compute filtered..
+      std::vector<actasp::AnswerSet> plansFromHere = policy->plansFrom(finalNotFiltered);
       AnswerSet filteredState = reasoner->filterState(plansFromHere, goalRules);
       final.insert(filteredState.getFluents().begin(), filteredState.getFluents().end());
       filtered = final;
-    //}
-  }
-
-  if (final.empty()) { //added to avoid seg fault at goal..
-    if (reasoner->currentStateQuery(goalRules).isSatisfied()) {
-      final.insert(state.getFluents().begin(), state.getFluents().end());
+      //}
     }
-  }
-  
+
+    if (final.empty()) { //added to avoid seg fault at goal..
+      if (reasoner->currentStateQuery(goalRules).isSatisfied()) {
+        final.insert(state.getFluents().begin(), state.getFluents().end());
+      }
+    }
+
   } // end of if filter
 
   else {  // no filter
@@ -340,7 +340,7 @@ void SarsaActionSelector::episodeEnded() throw() {
     //update the last state-action pair
     updateValue(0.);
   }
-  
+
   e.clear();
   initial.clear();
   final.clear();
@@ -348,48 +348,47 @@ void SarsaActionSelector::episodeEnded() throw() {
   v_s = 0;
 }
 
-void SarsaActionSelector::saveValueInitialState(const std::string& fileName) {    
-  ofstream initialValue(fileName.c_str(), ofstream::app);   
-      
-  AnswerSet initialAnswerSet= reasoner->currentStateQuery(vector<AspRule>());   
-  State initialState(initialAnswerSet.getFluents().begin(), initialAnswerSet.getFluents().end());   
+void SarsaActionSelector::saveValueInitialState(const std::string& fileName) {
+  ofstream initialValue(fileName.c_str(), ofstream::app);
 
-  if (FILTER) {
+  AnswerSet initialAnswerSet= reasoner->currentStateQuery(vector<AspRule>());
+  State initialState(initialAnswerSet.getFluents().begin(), initialAnswerSet.getFluents().end());
 
-  set<AspFluent> &filtered = notFilteredToFiltered[initialState];
-  if (!filtered.empty()) { //there is already the filtered state in the map
-    initialState.clear();
-    initialState = filtered;
-  }
-  else {
-    std::vector<actasp::AnswerSet> plansFromHere = policy.plansFrom(initialState);
-    AnswerSet filteredState = reasoner->filterState(plansFromHere, goalRules); 
-    initialState.clear();                                                           
-    initialState.insert(filteredState.getFluents().begin(), filteredState.getFluents().end());
-    filtered = initial;
-  }
+  if (FILTER && policy != NULL) {
+
+    set<AspFluent> &filtered = notFilteredToFiltered[initialState];
+    if (!filtered.empty()) { //there is already the filtered state in the map
+      initialState.clear();
+      initialState = filtered;
+    } else {
+      std::vector<actasp::AnswerSet> plansFromHere = policy->plansFrom(initialState);
+      AnswerSet filteredState = reasoner->filterState(plansFromHere, goalRules);
+      initialState.clear();
+      initialState.insert(filteredState.getFluents().begin(), filteredState.getFluents().end());
+      filtered = initial;
+    }
 
   } // end of if filter
 
   //else nothing, keep the query state
-      
-  ActionValueMap &initial_value_map = value[initialState];    
-  ActionValueMap::iterator action_value = initial_value_map.begin();    
-      
-  time_t rawtime;   
-  struct tm * timeinfo;   
-  char time_string[10];   
-  time(&rawtime);   
-  timeinfo = localtime(&rawtime);   
-  strftime (time_string,10,"%R",timeinfo);    
-      
-  stringstream actionNames;   
-      
-  actionNames << time_string << " ";   
 
-  if (FILTER)
-    initialValue << "filtered state: "; 
-  else 
+  ActionValueMap &initial_value_map = value[initialState];
+  ActionValueMap::iterator action_value = initial_value_map.begin();
+
+  time_t rawtime;
+  struct tm * timeinfo;
+  char time_string[10];
+  time(&rawtime);
+  timeinfo = localtime(&rawtime);
+  strftime(time_string,10,"%R",timeinfo);
+
+  stringstream actionNames;
+
+  actionNames << time_string << " ";
+
+  if (FILTER && policy != NULL)
+    initialValue << "filtered state: ";
+  else
     initialValue << "state: ";
 
   std::set< actasp::AspFluent> state_to_print = initialState;
@@ -397,13 +396,13 @@ void SarsaActionSelector::saveValueInitialState(const std::string& fileName) {
     initialValue << it->toString() << " ";
   }
   initialValue << endl << "action: ";
-      
-  for(; action_value != initial_value_map.end(); ++action_value) {    
-    initialValue << action_value->second << " ";    
-    actionNames << action_value->first.toString() << " ";   
-  }   
-  initialValue << actionNames.str() << endl << endl;    
-  initialValue.close();   
+
+  for (; action_value != initial_value_map.end(); ++action_value) {
+    initialValue << action_value->second << " ";
+    actionNames << action_value->first.toString() << " ";
+  }
+  initialValue << actionNames.str() << endl << endl;
+  initialValue.close();
 }
 
 
@@ -473,10 +472,10 @@ void SarsaActionSelector::writeTo(std::ostream & toStream) throw() {
   // cout << "value map: " << endl;
 
   for (; stateIt != value.end(); ++stateIt) {
-  
+
     // cout << "state: ";
     // set<AspFluent>::iterator printing = stateIt->first.begin();
-    // for (; printing != stateIt->first.end(); ++printing) 
+    // for (; printing != stateIt->first.end(); ++printing)
     //   cout << printing->toString() << " ";
     // cout << "  ";
 
