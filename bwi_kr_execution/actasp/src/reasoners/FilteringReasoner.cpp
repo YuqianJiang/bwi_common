@@ -6,6 +6,7 @@
 #include <sstream>
 #include <boost/graph/graph_concepts.hpp>
 
+
 using namespace std;
 
 namespace actasp {
@@ -52,9 +53,14 @@ AnswerSet FilteringReasoner::filterState(const std::vector<actasp::AnswerSet>& p
   for (; planIt != plans.end(); ++planIt) {
     //make a query that only uses the domain and what I created, not current.asp
     std::list<actasp::AnswerSet> listResult = clingo->filteringQuery(currentState,*planIt,goals);
-
-    std::list<actasp::AnswerSet>::const_iterator best = min_element(listResult.begin(), listResult.end(),AnswerSetStateComparator());
-    result.insert(best->getFluents().begin(),best->getFluents().end());
+    if (!listResult.empty()) {
+      std::list<actasp::AnswerSet>::const_iterator best = min_element(listResult.begin(), listResult.end(),AnswerSetStateComparator());
+      set<AspFluent> statezero = best->getFluentsAtTime(0);
+      set<AspFluent>::const_iterator statezeroIt = statezero.begin();
+      for (;statezeroIt != statezero.end(); ++statezeroIt) {
+        result.insert(*statezeroIt);
+      }
+    }
 
   }
 

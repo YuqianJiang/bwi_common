@@ -3,7 +3,8 @@
 #include <actasp/action_utils.h>
 
 #include <algorithm>
-
+#include <typeinfo>
+#include <iostream>
 
 using namespace std;
 
@@ -15,18 +16,19 @@ GraphPolicy::GraphPolicy(const ActionSet& actions) :  policyWithFinalState(), al
 
 struct ActionFromMap {
 
-  AspFluent operator()(const GraphPolicy::ActionStateMap::value_type& element) {
+  AspFluent operator()(const GraphPolicy::NonDetActionStateMap::value_type& element) {
     return element.first;
   }
 };
 
 ActionSet GraphPolicy::actions(const std::set<AspFluent>& state) const throw() {
 
-  GraphMap::const_iterator acts = policyWithFinalState.find(state);
+  NonDetGraphMap::const_iterator acts = policyWithFinalState.find(state);
 
   if (acts != policyWithFinalState.end()) {
     ActionSet actions;
     transform(acts->second.begin(),acts->second.end(),inserter(actions,actions.end()),ActionFromMap());
+    return actions;
   }
 
   return ActionSet();
@@ -36,8 +38,9 @@ void GraphPolicy::merge(const PartialPolicy* otherPolicy) {
   const GraphPolicy *other = dynamic_cast<const GraphPolicy*>(otherPolicy);
   if(other != NULL)
     merge(other);
-  
-  throw runtime_error("method not implemented for a partial policy other than GraphPolicy");
+
+  else
+    throw runtime_error("method not implemented for a partial policy other than GraphPolicy");
 }
 
 void GraphPolicy::merge(const AnswerSet& plan) throw(logic_error) {
@@ -70,8 +73,11 @@ void GraphPolicy::merge(const AnswerSet& plan) throw(logic_error) {
       final = nextState; //currently last state
     }
     action.setTimeStep(0);
-    ActionStateMap &actstate = policyWithFinalState[state];
-    actstate.insert(make_pair(action, final));
+    NonDetActionStateMap &actstate = policyWithFinalState[state];
+    //find action
+    std::set<std::set<AspFluent> > &nextStatesForAction = actstate[action];
+    //add next state
+    nextStatesForAction.insert(final);
 
     state = nextState;
 
@@ -80,22 +86,37 @@ void GraphPolicy::merge(const AnswerSet& plan) throw(logic_error) {
 
 struct GraphMergeActionsFinal { //merges policy with final states
   
-  GraphMergeActionsFinal( GraphPolicy::GraphMap &policyWithFinalState) : policyWithFinalState(policyWithFinalState) {}
+  GraphMergeActionsFinal( GraphPolicy::NonDetGraphMap &policyWithFinalState) : policyWithFinalState(policyWithFinalState) {}
 
- void operator()(const GraphPolicy::GraphMap::value_type& stateActionsState) {
+ void operator()(const GraphPolicy::NonDetGraphMap::value_type& stateActionsState) {
 
-   GraphPolicy::GraphMap::iterator found = policyWithFinalState.find(stateActionsState.first);
+   GraphPolicy::NonDetGraphMap::iterator found = policyWithFinalState.find(stateActionsState.first);
 
    if(found == policyWithFinalState.end())
      policyWithFinalState.insert(stateActionsState);
 
    else {
-    //check if action is already there. if it is, update final state, if it isnt add it.
-     found->second.insert(stateActionsState.second.begin(),stateActionsState.second.end());
+    //check if action is already there. if it is, add final state
+    GraphPolicy::NonDetActionStateMap &actionstates = found->second;
+
+    GraphPolicy::NonDetActionStateMap actstateToAdd = stateActionsState.second;
+    GraphPolicy::NonDetActionStateMap::iterator actstateToAddIt = actstateToAdd.begin();
+    for (; actstateToAddIt!=actstateToAdd.end(); ++ actstateToAddIt) {
+      AspFluent actionToFind = actstateToAddIt->first;
+      set<set<AspFluent> > stateToAdd = actstateToAddIt->second;
+      set<set<AspFluent> > &statesThere = actionstates[actionToFind];
+      set<set<AspFluent> >::iterator stateToAddIt = stateToAdd.begin();
+      for (;stateToAddIt != stateToAdd.begin(); ++stateToAddIt) {
+        statesThere.insert(*stateToAddIt);
+      }
+
+    }
+
+    //found->second.insert(stateActionsState.second.begin(),stateActionsState.second.end());
    }
 
  }
-  GraphPolicy::GraphMap &policyWithFinalState;
+  GraphPolicy::NonDetGraphMap &policyWithFinalState;
 };
 
 
@@ -119,17 +140,17 @@ bool GraphPolicy::empty() const throw() {
 }
 
 //helper
-void GraphPolicy::plansFromRec(const set<AspFluent>& state, vector<vector<AspFluent> >& result, std::vector< set<AspFluent> > visited) const throw() {
+void GraphPolicy::plansFromRec(const set<AspFluent> state, vector<vector<AspFluent> >& result, std::vector< set<AspFluent> > visited) const throw() {
 
   visited.push_back(state); //new state (function does not get called on states that have been visited already)
 
-  GraphMap::const_iterator acts = policyWithFinalState.find(state);
+  NonDetGraphMap::const_iterator acts = policyWithFinalState.find(state);
   if (acts == policyWithFinalState.end()) {
     result.pop_back(); //discard last plan
     return;
   }
-  const ActionStateMap& options = acts->second;
-  ActionStateMap::const_iterator option = options.begin();
+  const NonDetActionStateMap& options = acts->second;
+  NonDetActionStateMap::const_iterator option = options.begin();
   bool samePlan = true; //the first child is in the same plan, but every other has to start a new plan
 
   vector<AspFluent> commonResult = result.back();
@@ -138,36 +159,55 @@ void GraphPolicy::plansFromRec(const set<AspFluent>& state, vector<vector<AspFlu
   //for every possible action in the state
   for (; option != options.end(); ++option) {
 
-    if (!samePlan) { //get same starting point as siblings
+/*    if (!samePlan) { //get same starting point as siblings
       result.push_back(commonResult); //same starting result
       visited = commonVisited; //visited by siblings do not count, restart from parent's
-    }
+    }*/
 
-    set<AspFluent> nextState = option->second;
+    set<set<AspFluent> > ALLnextState = option->second;
     AspFluent nextAction = option->first;
 
-    //goal: save and stop
-    if (nextState.empty()) {
-      result.back().push_back(nextAction); //add action to the plan
-    }
+    set<set<AspFluent> >::const_iterator nextStateIt = ALLnextState.begin();
+    for (; nextStateIt != ALLnextState.end(); ++nextStateIt) {
 
-    //visited already: loop! discard
-    else if (std::find_if(visited.begin(), visited.end(), stateEquals(nextState) ) != visited.end()) {
-      result.pop_back(); //discard last plan
-    }
+      if (!samePlan) { //get same starting point as siblings
+        result.push_back(commonResult); //same starting result
+        visited = commonVisited; //visited by siblings do not count, restart from parent's
+      }
 
-    //plan is getting too long, discard
-    else if (result.back().size() >= maxPlanLength) {
-      result.pop_back();
-    }
+      //goal: save and stop
+      if (nextStateIt->empty()) {
+        //cout << "goal" << endl;
+        result.back().push_back(nextAction); //add action to the plan
+      }
 
-    //intermediate step: save and continue
-    else {
-      result.back().push_back(nextAction); //add action to the plan
-      plansFromRec(nextState, result, visited);
-    }
+      //visited already: loop! discard
+      else if (std::find_if(visited.begin(), visited.end(), stateEquals(*nextStateIt) ) != visited.end()) {
+        //cout << "loop" << endl;
+        result.pop_back(); //discard last plan
+      }
 
-    samePlan = false; //only first child stays on parent's plan
+      //plan is getting too long, discard
+      else if (!result.empty() && result.back().size() >= maxPlanLength) {
+
+        //cout << "result.back is long " << result.back().size() << "and max is " << maxPlanLength << " contains ";
+        //vector<AspFluent>::iterator planit = result.back().begin();
+        //for (;planit!=result.back().end(); ++planit)
+          //cout << planit->toString() << " ";
+        //cout << endl;
+        result.pop_back();
+      }
+
+      //intermediate step: save and continue
+      else {
+        //cout << "intermediate" << endl;
+        result.back().push_back(nextAction); //add action to the plan
+        plansFromRec(*nextStateIt, result, visited);
+      }
+
+      samePlan = false; //only first child stays on parent's plan
+
+    }
   }
 
 }
@@ -176,7 +216,7 @@ void GraphPolicy::plansFromRec(const set<AspFluent>& state, vector<vector<AspFlu
 std::vector<actasp::AnswerSet> GraphPolicy::plansFrom(const set<AspFluent>& state) throw() {
 
   //the state might not be in the policy
-  GraphMap::const_iterator acts = policyWithFinalState.find(state);
+  NonDetGraphMap::const_iterator acts = policyWithFinalState.find(state);
   if (acts == policyWithFinalState.end()) {
     std::vector<actasp::AnswerSet> nothing;
     return nothing;

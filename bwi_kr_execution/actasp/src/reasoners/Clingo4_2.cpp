@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#define CURRENT_FILE_HOME queryDir // was  std::string("/tmp/")
+#define CURRENT_FILE_HOME queryDir
 #define CURRENT_STATE_FILE std::string("current.asp")
 
 using namespace std;
@@ -243,6 +243,8 @@ static std::list<actasp::AnswerSet> readAnswerSets(const std::string& filePath) 
 
     if (line.find("Answer") != string::npos) {
       getline(file,line);
+      while (line.find("Answer") != string::npos) 
+        getline(file,line);
       try {
         list<AspFluent> fluents = parseAnswerSet(line);
         allSets.push_back(AnswerSet(fluents.begin(), fluents.end()));
@@ -321,6 +323,15 @@ std::list<actasp::AnswerSet> Clingo4_2::lengthRangePlanQuery(const std::vector<a
     unsigned int answerset_number) const throw() {
 
   string planquery = generatePlanQuery(goalRules);
+
+  //cout << "min " << min_plan_length << " max " << max_plan_length << endl;
+
+  //this is hardcoded for the grid, where you can only add a pair of actions
+  bool min_even = min_plan_length % 2;
+  bool max_even = max_plan_length % 2;
+  if (! min_even ^ max_even) { //one even the other not, problem .. opposite because min here gets ++ed before
+    max_plan_length--;
+  }
 
   std::list<actasp::AnswerSet> allplans =  genericQuery(planquery,max_plan_length,max_plan_length,"planQuery",answerset_number,true);
 
@@ -432,6 +443,8 @@ std::string Clingo4_2::makeQuery(const std::string& query,
   initialTimeStep++;
   finalTimeStep++;
 
+  //cout << "initialTimeStep is " << initialTimeStep << " ; finalTimeStep is " << finalTimeStep << endl;
+
   string queryPath = queryDir + fileName + ".asp";
 
   ofstream queryFile(queryPath.c_str());
@@ -447,7 +460,9 @@ std::string Clingo4_2::makeQuery(const std::string& query,
   }
 
   stringstream iterations;
-  iterations << "-cimin=" << initialTimeStep << " -cimax=" << finalTimeStep;
+  iterations << "-cimin=" << initialTimeStep;
+  if ( finalTimeStep > initialTimeStep ) //when max and initial are the same, we do not want max
+    iterations << " -cimax=" << finalTimeStep;
 
   commandLine << "clingo " << iterations.str() << " " << queryPath << " " << domainDir << "*.asp ";
   if(useCurrentState)

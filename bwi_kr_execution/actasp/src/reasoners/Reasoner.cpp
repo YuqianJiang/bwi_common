@@ -11,6 +11,7 @@
 #include <functional>
 #include <sstream>
 #include <cmath>
+#include <iostream>
 
 
 using namespace std;
@@ -255,6 +256,8 @@ void Reasoner::computePolicyHelper(const std::vector<actasp::AspRule>& goal, dou
   for_each(firstAnswerSets.begin(),firstAnswerSets.end(),PolicyMerger(policy));
 
   int maxLength = ceil(suboptimality * shortestLength);
+
+  //cout << "min lenght is " << shortestLength << " ; max lenght is " << maxLength << endl;
 
   if (maxLength == shortestLength)
     return;

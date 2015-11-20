@@ -26,8 +26,8 @@ void MultiPolicy::merge(const PartialPolicy* otherPolicy) {
     const MultiPolicy *other = dynamic_cast<const MultiPolicy*>(otherPolicy);
     if(other != NULL)
       merge(other);
-    
-    throw runtime_error("method not implemented for a partial policy other than MultiPolicy");
+    else 
+      throw runtime_error("method not implemented for a partial policy other than MultiPolicy");
 }
 
 void MultiPolicy::merge(const AnswerSet& plan) throw(logic_error) {

@@ -27,7 +27,7 @@ PartialPolicyExecutor::PartialPolicyExecutor(AspKR* kr, MultiPlanner *planner, A
                     kr(kr),
                     planner(planner),
                     goalRules(),
-                    policy(new MultiPolicy(actionMapToSet(actionMap))),
+                    policy(NULL),
                     suboptimality(suboptimality),
                     selector(selector),
                     actionMap(),
@@ -56,7 +56,7 @@ void  PartialPolicyExecutor::setGoal(const std::vector<actasp::AspRule>& goalRul
     for_each(executionObservers.begin(),executionObservers.end(),bind2nd(mem_fun(&ExecutionObserver::policyChanged),policy));
   }
 
-  hasFailed = policy->empty();
+  hasFailed = (policy!= NULL) && (policy->empty());
   delete active;
   active = NULL;
   actionCounter = 0;
@@ -89,12 +89,12 @@ void PartialPolicyExecutor::executeActionStep() {
   
   if (active != NULL && !active->hasFinished()) {
     
-  if (newAction) {
-    for_each(executionObservers.begin(),executionObservers.end(),NotifyActionStart(active->toFluent(actionCounter)));
-    newAction = false;
-  } 
+    if (newAction) {
+      for_each(executionObservers.begin(),executionObservers.end(),NotifyActionStart(active->toFluent(actionCounter)));
+      newAction = false;
+    } 
   
-  active->run();
+    active->run();
 
   } else {
     
@@ -116,8 +116,7 @@ void PartialPolicyExecutor::executeActionStep() {
     if (options.empty() || (active != NULL &&  active->hasFailed())) {
       //there's no action for this state, computing more plans
 
-      //if the last action failed, we may want to have some more options
-      
+      //if the last action failed, we may want to have some more option
 
       PartialPolicy *otherPolicy = planner->computePolicy(goalRules,suboptimality);
       policy->merge(otherPolicy);

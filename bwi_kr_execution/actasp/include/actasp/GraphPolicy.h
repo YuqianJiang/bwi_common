@@ -28,17 +28,17 @@ public:
   
   std::vector<actasp::AnswerSet> plansFrom(const std::set<AspFluent>& state) throw();
   
-  typedef std::map<AspFluent, std::set<AspFluent>, ActionComparator > ActionStateMap;
-  typedef std::map<std::set<AspFluent>, ActionStateMap, StateComparator<AspFluent> > GraphMap;
+  typedef std::map<AspFluent, std::set<std::set<AspFluent> >, ActionComparator > NonDetActionStateMap; //action to all next states
+  typedef std::map<std::set<AspFluent>, NonDetActionStateMap, StateComparator<AspFluent> > NonDetGraphMap; //states to all actions to all states
   
 private:
-  //map( initial state , map (action = aspfluent, final state) )
+  //map( initial state , map (action = aspfluent, final states) )
   //if the final state is the goal, the final state set is empty.
-  GraphMap policyWithFinalState;
-   unsigned int maxPlanLength;//used to avoid longer plans from policy 
+  NonDetGraphMap policyWithFinalState;
+  unsigned int maxPlanLength;//used to avoid longer plans from policy 
   ActionSet allActions;
   
-  void plansFromRec(const std::set<AspFluent>& state, std::vector<std::vector<AspFluent> >& result, std::vector<std::set<AspFluent> > visited) const throw();
+  void plansFromRec(const std::set<AspFluent> state, std::vector<std::vector<AspFluent> >& result, std::vector<std::set<AspFluent> > visited) const throw();
   
 };
   
