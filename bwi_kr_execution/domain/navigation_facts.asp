@@ -104,11 +104,8 @@ hasdoor(l3_400,d3_414a1).
 hasdoor(l3_416,d3_416). 
 hasdoor(l3_400,d3_416). 
 
-hasdoor(l3_500,d3_516b). 
-hasdoor(l3_516,d3_516b). 
-
-hasdoor(l3_516,d3_516a). 
-hasdoor(l3_514,d3_516a).
+hasdoor(l3_500,d3_516). 
+hasdoor(l3_516,d3_516). 
 
 hasdoor(l3_418,d3_418). 
 hasdoor(l3_400,d3_418). 

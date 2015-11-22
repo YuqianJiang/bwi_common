@@ -57,6 +57,9 @@ void MultiPolicy::merge(const AnswerSet& plan) throw(logic_error) {
 
 		stateActions.insert(action);
     
+    //TODO check this
+    state = stateWithAction;
+    
 	}
 
 }

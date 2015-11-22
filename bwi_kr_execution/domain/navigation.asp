@@ -1,8 +1,8 @@
 #include <iclingo>.
 
 badDoor(d3_418).
-badDoor(d3_414a).
-badDoor(d3_414b).
+badDoor(d3_414b1).
+badDoor(d3_414b2).
 
 
 #program cumulative(n).
@@ -19,7 +19,7 @@ at(R2,I) :- approach(D,I), at(R1,I-1), hasdoor(R2,D), acc(R1,R2), I>0, I=n-1.
 :- approach(D,I), at(R1,I-1), dooracc(R3,D,R2), not acc(R1,R3), not acc(R1,R2).
 besidedoor(I) :- beside(D,I), door(D), I>=0, I=n-1.
 knowbeside(I) :- besidedoor(I), I>=0, I=n-1.
-beside(nothing,I) :- not besidedoor(I), I>=0, I=n-1.
+beside(nothing,I) :- not besidedoor(I), not besidedoor(I-1), I>=0, I=n-1.
 knowbeside(I) :- beside(nothing,I), I>=0, I=n-1.
 %-beside(D) :- beside(nothing,I), door(D), I>=0, I=n-1.
 :- approach(D,I), not knowbeside(I-1).
@@ -73,8 +73,8 @@ open(D,I) :- open(D,I-1), not -open(D,I), I>0, I=n-1.
 beside(D,I) :- beside(D,I-1), not -beside(D,I), I>0, I=n-1.
 -beside(D,I) :- -beside(D,I-1), not beside(D,I), I>0, I=n-1.
 
-%#show at/2.
-%#show open/2.
+#show at/2.
+#show open/2.
 #show -open/2.
-%#show facing/2.
-%#show beside/2.
+#show facing/2.
+#show beside/2.

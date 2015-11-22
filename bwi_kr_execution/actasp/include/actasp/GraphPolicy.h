@@ -8,6 +8,7 @@
 
 #include <map>
 #include <set>
+#include <list>
 
 namespace actasp {
   
@@ -28,17 +29,17 @@ public:
   
   std::vector<actasp::AnswerSet> plansFrom(const std::set<AspFluent>& state) throw();
   
-  typedef std::map<AspFluent, std::set<std::set<AspFluent> >, ActionComparator > NonDetActionStateMap; //action to all next states
-  typedef std::map<std::set<AspFluent>, NonDetActionStateMap, StateComparator<AspFluent> > NonDetGraphMap; //states to all actions to all states
-  
 private:
-  //map( initial state , map (action = aspfluent, final states) )
-  //if the final state is the goal, the final state set is empty.
-  NonDetGraphMap policyWithFinalState;
-  unsigned int maxPlanLength;//used to avoid longer plans from policy 
-  ActionSet allActions;
   
-  void plansFromRec(const std::set<AspFluent> state, std::vector<std::vector<AspFluent> >& result, std::vector<std::set<AspFluent> > visited) const throw();
+  typedef std::map<std::set<AspFluent>, ActionSet, StateComparator<AspFluent> >  PolicyMap;
+  typedef std::list< std::list< AspFluent> > PlanList; 
+  typedef std::list< std::pair< PlanList::const_iterator, std::list< AspFluent>::const_iterator> > PlanReference;
+  typedef std::map<std::set<AspFluent>, PlanReference , StateComparator<AspFluent> > PlanIndex;
+  
+  PolicyMap policy;
+  ActionSet allActions;
+  PlanList plans;
+  PlanIndex planIndex;
   
 };
   

@@ -40,8 +40,8 @@ ingdc(P,I) :- inroom(P,R,I), person(P), room(R), I>=0, I=n-1.
 -ingdc(P,I) :- { not -inroom(P,R,I) : canbeinroom(P,R) }0, { not -know(P1,P,I) : canknow(P1,P) }0, person(P), I>=0, I=n-1.
 
 %action askperson(P1,P2,I)  ask P1 where P2 is
-inroom(P2,R,I) :- askperson(P1,P2,I), at(R,I-1), person(P1), person(P2), room(R), not -inroom(P2,R,I), I>0, I=n-1.
-:- askperson(P1,P2,I), not inroom(P1,R,I-1) : room(R), at(R,I-1), person(P1), person(P2), I>0, I=n-1.
+inroom(P2,R,I) | -inroom(P2,R,I):- askperson(P1,P2,I), at(R,I-1), person(P1), person(P2), room(R), I>0, I=n-1.
+:- askperson(P1,P2,I), not inroom(P1,R,I-1), at(R,I-1), person(P1), person(P2), I>0, I=n-1.
 :- askperson(P1,P2,I), inroom(P2,R,I-1), person(P1), person(P2), room(R), I>0, I=n-1.
 :- askperson(P1,P2,I), not canknow(P1,P2), person(P1), person(P2), I>0, I=n-1.
 :- askperson(P1,P2,I), -know(P1,P2,I-1), person(P1), person(P2), I>0, I=n-1.
@@ -74,16 +74,16 @@ inmeetingornowhere(P,M,I) :- -ingdc(P,I), meeting(M,G,R), I>=0, I=n-1.
 %allinmeeting(M,I) :- { not inmeeting(P,M,I) : ingroup(P,G) }0, meeting(M,G,R), group(G), room(R), I>=0, I=n-1.
 allinmeeting(M,I) :- { not inmeetingornowhere(P,M,I) : ingroup(P,G) }0, meeting(M,G,R), group(G), room(R), I>=0, I=n-1.
 
-%#show inroom/3.
-%#show -inroom/3.
+#show inroom/3.
+#show -inroom/3.
 %#show inoffice/2.
 %#show -inoffice/2.
 %#show ingdc/2.
 %#show -ingdc/2.
-%#show know/3.
-%#show -know/3.
-%#show inmeeting/3.
-%#show -inmeeting/3.
+#show know/3.
+#show -know/3.
+#show inmeeting/3.
+#show -inmeeting/3.
 %#show inmeetingornowhere/3.
 %#show allinmeeting/2.
 

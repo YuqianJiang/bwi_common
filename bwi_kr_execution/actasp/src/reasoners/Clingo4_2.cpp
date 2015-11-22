@@ -454,7 +454,7 @@ std::string Clingo4_2::makeQuery(const std::string& query,
 
   stringstream iterations;
   iterations << "-cimin=" << initialTimeStep;
-  if ( finalTimeStep > initialTimeStep ) //when max and initial are the same, we do not want max
+//   if ( finalTimeStep > initialTimeStep ) //when max and initial are the same, we do not want max
     iterations << " -cimax=" << finalTimeStep;
 
   commandLine << "clingo " << iterations.str() << " " << queryPath << " " << domainDir << "*.asp ";
@@ -565,7 +565,7 @@ std::list<actasp::AnswerSet> Clingo4_2::filteringQuery(const AnswerSet& currentS
   total << fluentsString.str() << std::endl << monitorString << endl << minimizeString.str() << endl;
 
   //make a query that only uses the domain and what I created, not current.asp
-  return  genericQuery(total.str(),plan.maxTimeStep(),plan.maxTimeStep(),"filterState",0,false);
+  return  genericQuery(total.str(),plan.getFluents().size(),plan.getFluents().size(),"filterState",0,false);
 
 }
 
