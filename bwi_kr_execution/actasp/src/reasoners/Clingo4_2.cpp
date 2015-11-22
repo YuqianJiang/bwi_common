@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#define CURRENT_FILE_HOME queryDir
+#define CURRENT_FILE_HOME std::string("/tmp/")
 #define CURRENT_STATE_FILE std::string("current.asp")
 
 using namespace std;
@@ -325,13 +325,6 @@ std::list<actasp::AnswerSet> Clingo4_2::lengthRangePlanQuery(const std::vector<a
   string planquery = generatePlanQuery(goalRules);
 
   //cout << "min " << min_plan_length << " max " << max_plan_length << endl;
-
-  //this is hardcoded for the grid, where you can only add a pair of actions
-  bool min_even = min_plan_length % 2;
-  bool max_even = max_plan_length % 2;
-  if (! min_even ^ max_even) { //one even the other not, problem .. opposite because min here gets ++ed before
-    max_plan_length--;
-  }
 
   std::list<actasp::AnswerSet> allplans =  genericQuery(planquery,max_plan_length,max_plan_length,"planQuery",answerset_number,true);
 

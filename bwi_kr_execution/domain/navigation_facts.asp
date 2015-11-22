@@ -52,8 +52,7 @@ door(d3_414a2).
 door(d3_414a3). 
 door(d3_414a1). 
 door(d3_416). 
-door(d3_516a). 
-door(d3_516b). 
+door(d3_516). 
 door(d3_418). 
 door(d3_512). 
 door(d3_510). 

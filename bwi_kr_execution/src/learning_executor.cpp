@@ -251,7 +251,7 @@ int main(int argc, char**argv) {
 
   boost::filesystem::create_directories(queryDirectory);
   
-  FilteringQueryGenerator *generator = new Clingo4_2("n",queryDirectory,domainDirectory,actionMapToSet(ActionFactory::actions()),30);
+  FilteringQueryGenerator *generator = new Clingo4_2("n",queryDirectory,domainDirectory,actionMapToSet(ActionFactory::actions()),20);
   FilteringKR *reasoner = new RemoteReasoner(generator,MAX_N,actionMapToSet(ActionFactory::actions()));
 
   StaticFacts::retrieveStaticFacts(reasoner, domainDirectory);

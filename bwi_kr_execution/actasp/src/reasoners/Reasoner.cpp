@@ -12,6 +12,7 @@
 #include <sstream>
 #include <cmath>
 #include <iostream>
+#include <iterator>
 
 
 using namespace std;
@@ -300,11 +301,11 @@ void Reasoner::computePolicyHelper(const std::vector<actasp::AspRule>& goal, dou
 //   clock_t filter_end = clock();
 
 
-//   set< list <AspFluentRef>, LexComparator >::const_iterator printIt = goodPlans.begin();
-//   for (; printIt != goodPlans.end(); ++printIt) {
-//     copy(printIt->begin(),printIt->end(),ostream_iterator<string>(cout, " "));
-//     cout << endl;
-//   }
+   set< list <AspFluentRef>, LexComparator >::const_iterator printIt = goodPlans.begin();
+   for (; printIt != goodPlans.end(); ++printIt) {
+     copy(printIt->begin(),printIt->end(),ostream_iterator<string>(cout, " "));
+     cout << endl;
+   }
 //   
 //   cout << "filtering took " << (double(filter_end - filter_begin) / CLOCKS_PER_SEC) << " seconds" << endl;
 

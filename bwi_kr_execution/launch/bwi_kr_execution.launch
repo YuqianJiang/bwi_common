@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="simulation" default="true" />
+  <arg name="simulation" default="false" />
   <arg name="domain" default="$(find bwi_kr_execution)/domain/" />
   <arg name="executor" default="learning_executor_node" />
  
