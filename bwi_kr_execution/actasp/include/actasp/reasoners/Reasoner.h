@@ -24,10 +24,14 @@ struct Reasoner : public AspKR {
   bool isPlanValid(const AnswerSet& plan, const std::vector<actasp::AspRule>& goal)  const throw();
   
   void resetCurrentState() throw();
+
+  void setCurrentState(const std::set<actasp::AspFluent>& newState) throw();
   
   AnswerSet computePlan(const std::vector<actasp::AspRule>& goal) const throw (std::logic_error) ;
   
   std::vector< AnswerSet > computeAllPlans(const std::vector<actasp::AspRule>& goal, double suboptimality) const throw (std::logic_error);
+
+  AnswerSet computeOptimalPlan(const std::vector<actasp::AspRule>& goal, bool filterActions, double suboptimality, bool minimum) const throw (std::logic_error);
   
   virtual PartialPolicy* computePolicy(const std::vector<actasp::AspRule>& goal, double suboptimality) const throw (std::logic_error);
   

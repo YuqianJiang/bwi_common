@@ -93,6 +93,10 @@ void Reasoner::resetCurrentState() throw() {
 clingo->setCurrentState(set<AspFluent>());
 }
 
+void Reasoner::setCurrentState(const std::set<actasp::AspFluent>& newState) throw() {
+  clingo->setCurrentState(newState);
+}
+
 AnswerSet Reasoner::computePlan(const std::vector<actasp::AspRule>& goal) const throw (std::logic_error){
   list<AnswerSet> plans = clingo->minimalPlanQuery(goal,true,max_n,1);
   
@@ -194,6 +198,28 @@ std::vector< AnswerSet > Reasoner::computeAllPlans(const std::vector<actasp::Asp
 
   return finalVector;
 
+}
+
+AnswerSet Reasoner::computeOptimalPlan(const std::vector<actasp::AspRule>& goal, bool filterActions, double suboptimality, bool minimum) const throw (std::logic_error) {
+  if (suboptimality < 1) {
+    stringstream num;
+    num << suboptimality;
+    throw logic_error("Clingo: suboptimality value cannot be less then one, found: " + num.str());
+  }
+
+ 
+  list<AnswerSet> firstAnswerSets = clingo->minimalPlanQuery(goal,true,max_n,0);
+
+  if (firstAnswerSets.empty())
+    return AnswerSet();
+
+  unsigned int shortestLength = firstAnswerSets.begin()->maxTimeStep();
+
+  int maxLength = ceil(suboptimality * shortestLength);
+
+  AnswerSet optimalAnswerSet = clingo->optimalPlanQuery(goal,filterActions,maxLength,0,minimum);
+
+  return optimalAnswerSet;
 }
 
 

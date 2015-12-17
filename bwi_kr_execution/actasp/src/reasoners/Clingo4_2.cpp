@@ -12,9 +12,6 @@
 #include <cstdlib>
 #include <iostream>
 
-#define CURRENT_FILE_HOME std::string("/tmp/")
-#define CURRENT_STATE_FILE std::string("current.asp")
-
 using namespace std;
 
 namespace actasp {
@@ -23,13 +20,15 @@ Clingo4_2::Clingo4_2(const std::string& incrementalVar,
                      const std::string& queryDir,
                      const std::string& domainDir,
                      const ActionSet& allActions,
+                     const std::string& currentFilePath,
                      unsigned int max_time
                     ) throw() :
   incrementalVar(incrementalVar),
   max_time(max_time),
   queryDir(queryDir),
   domainDir(domainDir),
-  allActions(allActions) {
+  allActions(allActions),
+  currentFilePath(currentFilePath) {
 
   if (max_time > 0 && !system("timeout 2>/dev/null")) //make sure timeout is available
     max_time = 0;
@@ -45,7 +44,7 @@ Clingo4_2::Clingo4_2(const std::string& incrementalVar,
   //TODO test the existance of the directories
 
   //create current file
-  ifstream currentFile((CURRENT_FILE_HOME + CURRENT_STATE_FILE).c_str());
+  ifstream currentFile((currentFilePath).c_str());
   if (!currentFile.good()) //doesn't exist, create it or clingo will go mad
     setCurrentState(set<AspFluent>());
 
@@ -260,6 +259,59 @@ static std::list<actasp::AnswerSet> readAnswerSets(const std::string& filePath) 
   return allSets;
 }
 
+static actasp::AnswerSet readOptimalAnswerSet(const std::string& filePath, const bool minimum) throw() {
+
+  ifstream file(filePath.c_str());
+
+  AnswerSet optimalAnswer;
+  AnswerSet currentAnswer;
+  unsigned int optimization = std::numeric_limits<unsigned int>::max();
+  unsigned int currentOptimization;
+  bool interrupted = false;
+
+  string line;
+  while (file) {
+
+    getline(file,line);
+
+    if(line == "UNSATISFIABLE" || line == "UNKNOWN") {
+      return optimalAnswer;
+    }
+
+    if (line.find("INTERRUPTED : 1") != string::npos)
+      interrupted = true;
+
+    if (line.find("Answer") != string::npos) {
+      getline(file,line);
+      while (line.find("Answer") != string::npos) 
+        getline(file,line);
+      try {
+        list<AspFluent> fluents = parseAnswerSet(line);
+        currentAnswer = AnswerSet(fluents.begin(), fluents.end());
+      } catch (std::invalid_argument& arg) {
+        //swollow it and skip this answer set.
+      }
+    }
+
+    if (line.find("Optimization: ") != string::npos) {
+      size_t space = line.find_first_of(" ");
+      currentOptimization = atoi(line.substr(space+1).c_str());
+
+      if (minimum && (currentOptimization < optimization)) {
+        optimalAnswer = currentAnswer;
+        optimization = currentOptimization;
+      }
+      else if ((!minimum) && (currentOptimization > optimization)) {
+        optimalAnswer = currentAnswer;
+        optimization = currentOptimization;
+      }
+
+    }
+  }
+
+  return optimalAnswer;
+}
+
 string Clingo4_2::generatePlanQuery(std::vector<actasp::AspRule> goalRules) const throw() {
   stringstream goal;
   goal << "#program volatile(" << incrementalVar << ")." << endl;
@@ -338,6 +390,27 @@ std::list<actasp::AnswerSet> Clingo4_2::lengthRangePlanQuery(const std::vector<a
   else
     return allplans;
 
+}
+
+actasp::AnswerSet Clingo4_2::optimalPlanQuery(const std::vector<actasp::AspRule>& goalRules,
+    bool filterActions,
+    unsigned int  max_plan_length,
+    unsigned int answerset_number,
+    bool minimum) const throw() {
+
+  string planquery = generatePlanQuery(goalRules);
+
+  string outputFilePath = makeQuery(planquery,max_plan_length,max_plan_length,"planQuery",answerset_number,true);
+
+  AnswerSet optimalPlan = readOptimalAnswerSet(outputFilePath,minimum);
+
+  if (filterActions) {
+    list<AnswerSet> sets;
+    sets.push_back(optimalPlan);
+    return *(filterPlans(sets,allActions).begin());
+  }
+  else
+    return optimalPlan;
 }
 
 AnswerSet Clingo4_2::currentStateQuery(const std::vector<actasp::AspRule>& query) const throw() {
@@ -459,7 +532,7 @@ std::string Clingo4_2::makeQuery(const std::string& query,
 
   commandLine << "clingo " << iterations.str() << " " << queryPath << " " << domainDir << "*.asp ";
   if(useCurrentState)
-    commandLine<< (CURRENT_FILE_HOME + CURRENT_STATE_FILE);
+    commandLine<< (currentFilePath);
   
   commandLine << " > " << outputFilePath << " " << answerSetsNumber;
 
@@ -531,7 +604,7 @@ std::list< std::list<AspAtom> > Clingo4_2::genericQuery(const std::string& query
 void Clingo4_2::setCurrentState(const std::set<actasp::AspFluent>& newState) {
 
   //copy the current state in a file
-  ofstream currentFile((CURRENT_FILE_HOME + CURRENT_STATE_FILE).c_str());
+  ofstream currentFile((currentFilePath).c_str());
 
   set<AspFluent>::const_iterator stateIt = newState.begin();
   for (; stateIt != newState.end(); ++stateIt)

@@ -26,6 +26,12 @@ struct QueryGenerator {
                                          unsigned int min_plan_length,
                                          unsigned int  max_plan_length,
                                          unsigned int answerset_number) const throw() = 0;
+
+  virtual actasp::AnswerSet optimalPlanQuery(const std::vector<actasp::AspRule>& goalRules,
+                                         bool filterActions,
+                                         unsigned int  max_plan_length,
+                                         unsigned int answerset_number,
+                                         bool minimum) const throw() = 0;
   
   virtual std::list<actasp::AnswerSet> monitorQuery(const std::vector<actasp::AspRule>& goalRules,
                                          const AnswerSet& plan) const throw() = 0;

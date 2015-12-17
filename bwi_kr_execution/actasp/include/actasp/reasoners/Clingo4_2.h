@@ -12,6 +12,7 @@ struct Clingo4_2 : public FilteringQueryGenerator {
           const std::string& queryDir,
           const std::string& domainDir,
           const ActionSet& actions,
+          const std::string& currentFilePath = "/tmp/current.asp",
           unsigned int max_time = 0
          ) throw();
 
@@ -25,6 +26,12 @@ struct Clingo4_2 : public FilteringQueryGenerator {
       unsigned int min_plan_length,
       unsigned int  max_plan_length,
       unsigned int answerset_number) const throw();
+
+  actasp::AnswerSet optimalPlanQuery(const std::vector<actasp::AspRule>& goalRules,
+      bool filterActions,
+      unsigned int  max_plan_length,
+      unsigned int answerset_number,
+      bool minimum) const throw();
 
   std::list<actasp::AnswerSet> monitorQuery(const std::vector<actasp::AspRule>& goalRules,
       const AnswerSet& plan) const throw();
@@ -72,6 +79,7 @@ private:
   unsigned int max_time;
   std::string queryDir;
   std::string domainDir;
+  std::string currentFilePath;
 
 };
 
