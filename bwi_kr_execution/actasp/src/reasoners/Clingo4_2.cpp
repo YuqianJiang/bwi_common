@@ -11,10 +11,47 @@
 #include <fstream>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
+
+#define CURRENT_STATE_FILE std::string("/tmp/current.asp")
 
 using namespace std;
 
 namespace actasp {
+
+Clingo4_2::Clingo4_2(const std::string& incrementalVar,
+                      const std::string& queryDir,
+                      const std::string& domainDir,
+                      const ActionSet& allActions,
+                      unsigned int max_time
+                    ) throw() :
+  incrementalVar(incrementalVar),
+  max_time(max_time),
+  queryDir(queryDir),
+  domainDir(domainDir),
+  allActions(allActions),
+  currentFilePath(CURRENT_STATE_FILE) {
+
+  if (max_time > 0 && !system("timeout 2>/dev/null")) //make sure timeout is available
+    max_time = 0;
+  
+  //make sure directory ends with '/'
+  
+  if (this->queryDir.find_last_of("/") != (this->queryDir.length() -1))
+    this->queryDir += "/";
+
+  if ((this->domainDir.find_last_of("/")) != (this->domainDir.length() -1))
+    this->domainDir += "/";
+
+  //TODO test the existance of the directories
+
+  //create current file
+  ifstream currentFile(currentFilePath.c_str());
+  if (!currentFile.good()) //doesn't exist, create it or clingo will go mad
+    setCurrentState(set<AspFluent>());
+
+  currentFile.close();
+}
 
 Clingo4_2::Clingo4_2(const std::string& incrementalVar,
                      const std::string& queryDir,

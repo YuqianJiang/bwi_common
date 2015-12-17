@@ -244,7 +244,7 @@ int main(int argc, char**argv) {
   privateNode.param<bool>("simulation",simulating,false);
   
 //  valueDirectory = ros::package::getPath("bwi_kr_execution") +((simulating)? "/values_simulation/" : "/values/" ) ;
-  valueDirectory = value_directory_base + ((simulating)? "values_simulation/" : "/values/" ); 
+  valueDirectory = value_directory_base + ((simulating)? "values_simulation/" : "values/" ); 
   boost::filesystem::create_directories(valueDirectory);
   
   ActionFactory::setSimulation(simulating);
