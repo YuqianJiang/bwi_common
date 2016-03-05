@@ -27,7 +27,10 @@ add_service_files(
     ComputePlan.srv
     CurrentStateQuery.srv
     IsPlanValid.srv
-    UpdateFluents.srv)
+    UpdateFluents.srv
+    MultirobotComputePlan.srv
+    MultirobotUpdateFluents.srv
+    StartRobot.srv)
 
 ## Generate actions in the 'action' folder
 add_action_files(FILES ExecutePlan.action)
@@ -73,7 +76,9 @@ target_link_libraries(kractions actasp)
 set(spexec_SRC)
 set(anyexec_SRC)
 set(lexec_SRC)
+set(multiexec_SRC)
 set(krreasoner_SRC)
+set(multikr_SRC)
 
 add_subdirectory(src)
 add_executable(single_plan_executor_node ${spexec_SRC})
@@ -87,9 +92,17 @@ target_link_libraries(any_plan_executor_node
 add_executable(learning_executor_node ${lexec_SRC})
 target_link_libraries(learning_executor_node
   ${catkin_LIBRARIES} actasp kractions)
+
+add_executable(multirobot_executor_node ${multiexec_SRC})
+target_link_libraries(multirobot_executor_node
+  ${catkin_LIBRARIES} actasp kractions)
  
 add_executable(knowledge_reasoning_node  ${krreasoner_SRC})
 target_link_libraries(knowledge_reasoning_node
+  ${catkin_LIBRARIES} actasp kractions)
+
+add_executable(multirobot_knowledge_reasoning_node  ${multikr_SRC})
+target_link_libraries(multirobot_knowledge_reasoning_node
   ${catkin_LIBRARIES} actasp kractions)
 
 add_executable(asp_formatter src/asp_formatter.cpp)
