@@ -11,11 +11,10 @@
 #include <actasp/reasoners/Clingo4_2.h>
 
 #include "bwi_kr_execution/ExecutePlanAction.h"
-#include "bwi_kr_execution/StartRobot.h"
 #include "std_msgs/String.h"
 
-#include "actions/ActionFactory.h"
-#include "actions/LogicalNavigation.h"
+#include "multirobot_actions/ActionFactory.h"
+#include "multirobot_actions/LogicalNavigation.h"
 
 #include <actionlib/server/simple_action_server.h>
 
@@ -27,9 +26,8 @@
 
 #include <string>
 
-const int MAX_N = 30;
+const int MAX_N = 20;
 const int PLANNER_TIMEOUT = 20; //seconds
-const std::string queryDirectory("/tmp/bwi_action_execution/");
 
 
 using namespace std;
@@ -142,25 +140,12 @@ int main(int argc, char**argv) {
   if(domainDirectory.at(domainDirectory.size()-1) != '/')
     domainDirectory += '/';
 
+  domainDirectory = ros::package::getPath("bwi_kr_execution")+"/domain_simulation_new/";
+
   string name = n.getNamespace().substr(2);
-  string queryDir = "/tmp/"+name+"/bwi_action_execution/";
-  string currentFilePath = "/tmp/"+name+"/current.asp";
+  string queryDir = "/tmp/bwi_action_execution/"+name+"/";
+  string currentFilePath = "/tmp/bwi_action_execution/"+name+"/current.asp";
   boost::filesystem::create_directories(queryDir);
-
-//  register the robot with multirobot_kr
-  ros::ServiceClient start_client = n.serviceClient<bwi_kr_execution::StartRobot>("start_robot");
-  bwi_kr_execution::StartRobot start_srv;
-  start_srv.request.name = name;
-  start_client.call(start_srv);
-  if (!start_srv.response.success) {
-    ROS_INFO_STREAM("multirobot_kr failed to add " << name << ".");
-    ros::shutdown();
-  }
-
-//  create initial state
-  LogicalNavigation setInitialState("noop");
-  setInitialState.run();
-
 
   bool simulating;
   privateNode.param<bool>("simulation",simulating,false);
@@ -169,6 +154,13 @@ int main(int argc, char**argv) {
   FilteringQueryGenerator *generator = new Clingo4_2("n",queryDir,domainDirectory,actionMapToSet(ActionFactory::actions()),currentFilePath,PLANNER_TIMEOUT);
   AspKR *reasoner = new MultirobotRemoteReasoner(name, generator, MAX_N,actionMapToSet(ActionFactory::actions()));
   StaticFacts::retrieveStaticFacts(reasoner, domainDirectory);
+
+  //ros::ServiceServer update_client = n.advertiseService("update_fluents",&MultirobotRemoteReasoner::updateFluents,static_cast<MultirobotRemoteReasoner*>(reasoner));
+  ROS_INFO("sensing initial state");
+
+//  create initial state
+  LogicalNavigation setInitialState("noop");
+  setInitialState.run();
   
   //need a pointer to the specific type for the observer
   ReplanningActionExecutor *replanner = new ReplanningActionExecutor(reasoner,reasoner,ActionFactory::actions());

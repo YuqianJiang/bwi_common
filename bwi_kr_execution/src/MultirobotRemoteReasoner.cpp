@@ -45,7 +45,7 @@ actasp::PartialPolicy* MultirobotRemoteReasoner::computePolicy(const std::vector
 bool MultirobotRemoteReasoner::updateFluents(const std::vector<actasp::AspFluent> &observations) throw() {
   //
   ros::NodeHandle n;
-  ros::ServiceClient updateClient = n.serviceClient<bwi_kr_execution::MultirobotUpdateFluents>(name+"/update_fluents");
+  ros::ServiceClient updateClient = n.serviceClient<bwi_kr_execution::MultirobotUpdateFluents>("multirobot_update_fluents");
   updateClient.waitForExistence();
 
   bwi_kr_execution::MultirobotUpdateFluents uf;
@@ -57,12 +57,14 @@ bool MultirobotRemoteReasoner::updateFluents(const std::vector<actasp::AspFluent
   set<actasp::AspFluent> state;
   transform(uf.response.state.begin(),uf.response.state.end(),inserter(state,state.begin()),TranslateFluent());
   local.setCurrentState(state);
+
+  return true;
 }
 
 actasp::AnswerSet MultirobotRemoteReasoner::computePlan(const std::vector<actasp::AspRule>& goal) const throw (std::logic_error) {
 	//
   ros::NodeHandle n;
-  ros::ServiceClient planClient = n.serviceClient<bwi_kr_execution::MultirobotComputePlan>(name+"/compute_plan");
+  ros::ServiceClient planClient = n.serviceClient<bwi_kr_execution::MultirobotComputePlan>("multirobot_compute_plan");
   planClient.waitForExistence();
 
   bwi_kr_execution::MultirobotComputePlan cp;

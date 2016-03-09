@@ -1,0 +1,7 @@
+at(l6,0).
+facing(dc2,0).
+open(dc2,0).
+
+#program volatile(n).
+#external query(n).
+:- not at(l2,n-1), query(n).

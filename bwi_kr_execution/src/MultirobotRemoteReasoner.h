@@ -5,6 +5,8 @@
 #include <actasp/reasoners/FilteringReasoner.h>
 #include <actasp/FilteringQueryGenerator.h>
 
+#include "bwi_kr_execution/UpdateFluents.h"
+
 namespace bwi_krexec {
 
 class MultirobotRemoteReasoner : public actasp::AspKR {

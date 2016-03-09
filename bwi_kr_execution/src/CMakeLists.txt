@@ -43,3 +43,8 @@ SET( multikr_SRC ${multikr_SRC}
   ${CMAKE_CURRENT_SOURCE_DIR}/multirobot_knowledge_reasoning.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/msgs_utils.cpp
 PARENT_SCOPE)
+
+SET( multicr_SRC ${multicr_SRC}
+  ${CMAKE_CURRENT_SOURCE_DIR}/multirobot_central_reasoning.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/msgs_utils.cpp
+PARENT_SCOPE)
