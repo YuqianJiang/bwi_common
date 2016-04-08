@@ -1,4 +1,4 @@
-#include "OpenSimulatedDoor.h"
+#include "WaitForOpen.h"
 
 #include "bwi_kr_execution/CurrentStateQuery.h"
 #include "bwi_msgs/DoorHandlerInterface.h"
@@ -16,27 +16,10 @@ using namespace ros;
 namespace bwi_krexec {
 
 
-OpenSimulatedDoor::OpenSimulatedDoor() : door(), done(false),requestSent(false) {}
+WaitForOpen::WaitForOpen() : door(), done(false) {}
 
-void OpenSimulatedDoor::run() {
+void WaitForOpen::run() {
   NodeHandle n;
-
-  if (!requestSent) {
-    //ros::Duration(27).sleep();
-
-    ServiceClient doorClient = n.serviceClient<bwi_msgs::DoorHandlerInterface> ("/update_doors");
-    doorClient.waitForExistence();
-
-    bwi_msgs::DoorHandlerInterface dhi;
-
-    dhi.request.all_doors = false;
-    dhi.request.door = door;
-    dhi.request.open = true;
-
-    doorClient.call(dhi);
-
-    requestSent = true;
-  }
 
   vector<string> params;
   params.push_back(door);
@@ -63,19 +46,19 @@ void OpenSimulatedDoor::run() {
 }
 
 
-actasp::Action* OpenSimulatedDoor::cloneAndInit(const actasp::AspFluent& fluent) const {
-  OpenSimulatedDoor *newAction = new OpenSimulatedDoor();
+actasp::Action* WaitForOpen::cloneAndInit(const actasp::AspFluent& fluent) const {
+  WaitForOpen *newAction = new WaitForOpen();
   newAction->door = fluent.getParameters().at(0);
 
   return newAction;
 }
 
-std::vector<std::string> OpenSimulatedDoor::getParameters() const {
+std::vector<std::string> WaitForOpen::getParameters() const {
   vector<string> param;
   param.push_back(door);
   return param;
 }
 
-bwi_krexec::ActionFactory simulatedOpenDoor(new OpenSimulatedDoor(), true);
+bwi_krexec::ActionFactory waitForOpen(new WaitForOpen(), true);
 
 }

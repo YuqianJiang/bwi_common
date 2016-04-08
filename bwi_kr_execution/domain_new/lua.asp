@@ -50,7 +50,7 @@ function overlappenalty(c1,p1,c2,p2,d,mu)
         end
         if (s < 0) then return 0 end
     end
-    return s*mu
+    return math.floor(s*mu)
 end
 
 function waitingtime(c1,p1,c2,p2,rho)
@@ -63,14 +63,14 @@ function waitingtime(c1,p1,c2,p2,rho)
       return 0
     end
     ex = (c1-c2+(lambda1_c-lambda2_s)*5)
-    if (ex>8) then
+    if (ex>7) then
       return 0
     end
     if (ex<=0) then
       return 0
     end
     if ((lambda1_c == 0) and (lambda2_s == 0)) then
-      return ex+4
+      return ex+5
     end
     s1 = 0
     s2 = 0
@@ -90,13 +90,13 @@ function waitingtime(c1,p1,c2,p2,rho)
         end
     end
     s1 = (1-s1)*rho/10+s1
-    if s1>0.3 then
+    if s1>0.33 then
       return 0
     end
-    if (s2>8) then
+    if (s2>7) then
       return 0
     end
-    return s2+4
+    return math.floor(s2+5)
 end
 #end.
 

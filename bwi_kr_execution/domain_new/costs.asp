@@ -11,10 +11,8 @@ dist(l4,l5,2).
 dist(l5,l4,2).
 dist(l6,l7,1).
 dist(l7,l6,1).
-dist(l6,l8,4).
-dist(l8,l6,4).
-dist(l7,l9,4).
-dist(l9,l7,4).
+%dist(l6,l8,4).
+%dist(l8,l6,4).
 dist(l8,l9,1).
 dist(l9,l8,1).
 
@@ -36,7 +34,7 @@ cost(X*4,1) :- wait(X,1), n=2.
 
 cost(X*4,I) :- goto(L1,L2,I), dist(L1,L2,X),I>1,I=n-1.
 cost(2,I) :- approach(D,I),I>0,I=n-1.
-cost(4,I) :- gothrough(D,I),I>0,I=n-1. 
+cost(3,I) :- gothrough(D,I),I>0,I=n-1. 
 cost(12,I) :- opendoor(D,I),door(D),I>1,I=n-1.
 
 cost(0,I) :- noop(I),I>0,I=n-1.

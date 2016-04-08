@@ -13,6 +13,8 @@ public:
   explicit GoTo(const std::string& from, const std::string& to);
   
   void run();
+
+  std::string getName() const {return "goto";}
   
   bool hasFailed() const {return failed;}
   

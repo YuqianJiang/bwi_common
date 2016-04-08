@@ -8,6 +8,7 @@
 #include "msgs_utils.h"
 #include "bwi_kr_execution/MultirobotComputePlan.h"
 #include "bwi_kr_execution/MultirobotUpdateFluents.h"
+#include "bwi_kr_execution/NewPlan.h"
 #include "bwi_msgs/AvailableRobotArray.h"
 #include "std_msgs/String.h"
 
@@ -30,12 +31,17 @@ using namespace bwi_krexec;
 string common_directory = ros::package::getPath("bwi_kr_execution")+"/domain_new/";
 
 struct Robot {
-  Robot(const string s, const ros::ServiceServer plan_server, const ros::ServiceServer state_server, const ros::Subscriber stop_subscriber, const string externalFilePath, Reasoner* const reasoner) : 
-                  name(s), plan_server(plan_server), state_server(state_server), stop_subscriber(stop_subscriber), externalFilePath(externalFilePath), externalFluents(), reasoner(reasoner) {}
+  Robot(const string s, const ros::ServiceServer plan_server, const ros::ServiceServer state_server, const ros::Subscriber stop_subscriber,
+          const ros::Publisher plan_publisher, const string externalFilePath, Reasoner* const reasoner) : 
+                                name(s), plan_server(plan_server), state_server(state_server), 
+                                stop_subscriber(stop_subscriber), plan_publisher(plan_publisher),
+                                externalFilePath(externalFilePath), externalFluents(), reasoner(reasoner) {}
   string name;
   ros::ServiceServer plan_server;
   ros::ServiceServer state_server;
   ros::Subscriber stop_subscriber;
+  ros::Publisher plan_publisher;
+  AnswerSet plan;
   string externalFilePath;
   vector<AspRule> goal;
   stringstream externalFluents;
@@ -51,7 +57,7 @@ map<string, Robot*> robots;
 std::map<std::string, actasp::Action *> actionMap;
 const int MAX_N = 15;
 const double SUBOPTIMALITY = 1.1;
-const double alpha = 0.5;
+const double alpha = 1;
 const double rho = 10;
 const double collision_penalty = 100;
 bool printFluent = false;
@@ -177,10 +183,10 @@ bool plan(bwi_kr_execution::MultirobotComputePlan::Request &req,
   }
   it->second->goal.erase(it->second->goal.begin(), it->second->goal.end());
   transform(req.goal.begin(),req.goal.end(),back_inserter(it->second->goal),TranslateRule());
-  AnswerSet answer = planHelper(it);
-  if (!answer.isSatisfied()) {
+  it->second->plan = planHelper(it);
+  if (!it->second->plan.isSatisfied()) {
     TranslateAnswerSet translator;
-    res.plan = translator(answer);
+    res.plan = translator(it->second->plan);
     return true;
   }
 
@@ -196,7 +202,7 @@ bool plan(bwi_kr_execution::MultirobotComputePlan::Request &req,
         if ((!rIt->second->goal.empty()) && (rIt != pIt)) {
           writeExternalFluents(rIt,pIt,care);
           if (printPlans) ROS_INFO_STREAM("planning " << rIt->first);
-          planHelper(rIt);
+          rIt->second->plan = planHelper(rIt);
           ofstream externalFile(rIt->second->externalFilePath.c_str());
           externalFile.close();
         }
@@ -204,13 +210,22 @@ bool plan(bwi_kr_execution::MultirobotComputePlan::Request &req,
       }
     }
 
-    //somehow notify other robots of new plan
     TranslateAnswerSet translator;
-    res.plan = translator(answer);
+    res.plan = translator(it->second->plan);
+
+    //somehow notify other robots of new plan
+    for (map<string,Robot*>::iterator rIt = robots.begin(); rIt != robots.end(); ++rIt) {
+      if ((rIt != it) && (!rIt->second->goal.empty())) {
+        bwi_kr_execution::NewPlan np_msg;
+        np_msg.time = ros::Time::now();
+        np_msg.plan = translator(rIt->second->plan);
+        rIt->second->plan_publisher.publish(np_msg);
+      }
+    }
   }
   else {
     TranslateAnswerSet translator;
-    res.plan = translator(answer);
+    res.plan = translator(it->second->plan);
   }
   
 
@@ -261,6 +276,7 @@ void startRobot(const string name)
     string plan_srv_name = "/" + name + "/multirobot_compute_plan";
     string state_srv_name = "/" + name + "/multirobot_update_fluents";
     string stop_msg_name = "/" + name + "/stop_robot";
+    string notify_msg_name = "/" + name + "/notify_new_plan";
     string queryDirectory = "/tmp/bwi_multirobot_planning/" + name + "/query/";
     string domainDirectory = "/tmp/bwi_multirobot_planning/" + name + "/domain/";
     boost::filesystem::create_directories(queryDirectory);
@@ -275,7 +291,8 @@ void startRobot(const string name)
     FilteringQueryGenerator *generator = new Clingo4_2("n",queryDirectory,domainDirectory,actionMapToSet(actionMap),currentFile);
     Reasoner* reasoner = new Reasoner(generator,MAX_N,actionMapToSet(actionMap));
     ROS_INFO_STREAM("starting robot " + name);
-    Robot* r =  new Robot(name, n.advertiseService(plan_srv_name, plan), n.advertiseService(state_srv_name, update), n.subscribe(stop_msg_name, 1000, stopRobot), externalFilePath, reasoner);
+    Robot* r =  new Robot(name, n.advertiseService(plan_srv_name, plan), n.advertiseService(state_srv_name, update), 
+                                n.subscribe(stop_msg_name, 10, stopRobot), n.advertise<bwi_kr_execution::NewPlan>(notify_msg_name, 10), externalFilePath, reasoner);
     robots[name] = r;
   }
 }

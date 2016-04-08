@@ -4,13 +4,14 @@
 #include "StaticFacts.h"
 
 #include "actasp/action_utils.h"
-#include "actasp/executors/ReplanningActionExecutor.h"
+#include "actasp/executors/MultirobotActionExecutor.h"
 #include "actasp/ExecutionObserver.h"
 #include "actasp/PlanningObserver.h"
 #include "actasp/AnswerSet.h"
 #include <actasp/reasoners/Clingo4_2.h>
 
 #include "bwi_kr_execution/ExecutePlanAction.h"
+#include "bwi_kr_execution/NewPlan.h"
 #include "std_msgs/String.h"
 
 #include "multirobot_actions/ActionFactory.h"
@@ -37,7 +38,8 @@ using namespace actasp;
 typedef actionlib::SimpleActionServer<bwi_kr_execution::ExecutePlanAction> Server;
 
 
-ActionExecutor *executor;
+MultirobotActionExecutor *executor;
+string name;
 
 struct PrintFluent {
   
@@ -54,18 +56,18 @@ struct PrintFluent {
 struct Observer : public ExecutionObserver, public PlanningObserver {
   
   void actionStarted(const AspFluent& action) throw() {
-    ROS_INFO_STREAM("Starting execution: " << action.toString());
+    ROS_INFO_STREAM(name << ": Starting execution: " << action.toString());
   }
   
   void actionTerminated(const AspFluent& action) throw() {
-    ROS_INFO_STREAM("Terminating execution: " << action.toString());
+    ROS_INFO_STREAM(name << ": Terminating execution: " << action.toString());
   }
   
   
   void planChanged(const AnswerSet& newPlan) throw() {
    stringstream planStream;
    
-   ROS_INFO_STREAM("plan size: " << newPlan.getFluents().size());
+   ROS_INFO_STREAM(name << ": plan size: " << newPlan.getFluents().size());
    
    copy(newPlan.getFluents().begin(),newPlan.getFluents().end(),ostream_iterator<string>(planStream," "));
    
@@ -79,50 +81,37 @@ struct Observer : public ExecutionObserver, public PlanningObserver {
   
 };
 
-void executePlan(const bwi_kr_execution::ExecutePlanGoalConstPtr& plan, Server* as) {
+void acceptNewPlan(const bwi_kr_execution::NewPlan::ConstPtr& np_msg) {
+  if (executor->goalSet()) {
+    ROS_INFO_STREAM(name << ": Accepting new plan!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    double time = np_msg->time.toSec();
+    actasp::AnswerSet plan = TranslateAnswerSet()(np_msg->plan);
+    executor->acceptNewPlan(time, plan);
+  }
+}
 
+void getNewGoal(Server *as) {
+  ROS_INFO("accepting new goal");
+  const bwi_kr_execution::ExecutePlanGoalConstPtr& goal = as->acceptNewGoal();
   vector<AspRule> goalRules;
-
-  transform(plan->aspGoal.begin(),plan->aspGoal.end(),back_inserter(goalRules),TranslateRule());
-
+  transform(goal->aspGoal.begin(),goal->aspGoal.end(),back_inserter(goalRules),TranslateRule());
   executor->setGoal(goalRules);
 
-  ros::Rate loop(10);
-
-  while (!executor->goalReached() && !executor->failed() && ros::ok() && as->isActive()) {
-
-    if (!as->isPreemptRequested()) {
-      executor->executeActionStep();
-    }
-    else {
-      
-      as->setPreempted();
-      
-      if (executor->goalReached()) 
-        ROS_INFO("Preempted, but execution succeded");
-      else 
-        ROS_INFO("Preempted, execution aborted");
-      
-      if(as->isNewGoalAvailable()) {
-        goalRules.clear();
-        const bwi_kr_execution::ExecutePlanGoalConstPtr& newGoal = as->acceptNewGoal();
-        transform(newGoal->aspGoal.begin(),newGoal->aspGoal.end(),back_inserter(goalRules),TranslateRule());
-        executor->setGoal(goalRules);
-      }
-    }
-         loop.sleep();
+  if (as->isPreemptRequested()) {
+    as->setPreempted();
+    if (executor->goalReached()) 
+      ROS_INFO("Preempted, but execution succeded");
+    else 
+      ROS_INFO("Preempted, execution aborted");
   }
+}
 
-
-  if (executor->goalReached()) {
-    ROS_INFO("Execution succeded");
-    if(as->isActive())
-      as->setSucceeded();
-  } else {
-    ROS_INFO("Execution failed");
-   if(as->isActive())
-    as->setAborted();
-  }
+void getPreemptRequest(Server *as) {
+  as->setPreempted();
+  if (executor->goalReached()) 
+    ROS_INFO("Preempted, but execution succeded");
+  else 
+    ROS_INFO("Preempted, execution aborted");
 }
 
 int main(int argc, char**argv) {
@@ -142,7 +131,7 @@ int main(int argc, char**argv) {
 
   domainDirectory = ros::package::getPath("bwi_kr_execution")+"/domain_simulation_new/";
 
-  string name = n.getNamespace().substr(2);
+  name = n.getNamespace().substr(2);
   string queryDir = "/tmp/bwi_action_execution/"+name+"/";
   string currentFilePath = "/tmp/bwi_action_execution/"+name+"/current.asp";
   boost::filesystem::create_directories(queryDir);
@@ -156,26 +145,51 @@ int main(int argc, char**argv) {
   StaticFacts::retrieveStaticFacts(reasoner, domainDirectory);
 
   //ros::ServiceServer update_client = n.advertiseService("update_fluents",&MultirobotRemoteReasoner::updateFluents,static_cast<MultirobotRemoteReasoner*>(reasoner));
-  ROS_INFO("sensing initial state");
+  ROS_INFO_STREAM(name << ": sensing initial state");
 
 //  create initial state
   LogicalNavigation setInitialState("noop");
   setInitialState.run();
   
   //need a pointer to the specific type for the observer
-  ReplanningActionExecutor *replanner = new ReplanningActionExecutor(reasoner,reasoner,ActionFactory::actions());
+  MultirobotActionExecutor *replanner = new MultirobotActionExecutor(reasoner,reasoner,ActionFactory::actions());
   executor = replanner;
   
   Observer observer;
   executor->addExecutionObserver(&observer);
   replanner->addPlanningObserver(&observer);
 
-  Server server(privateNode, "execute_plan", boost::bind(&executePlan, _1, &server), false);
+  ros::Subscriber new_plan_sub = n.subscribe("notify_new_plan", 10, acceptNewPlan);
+  ros::Publisher stop_pub = n.advertise<std_msgs::String>("stop_robot", 1000);
+
+  Server server(privateNode, "execute_plan", false);
+  server.registerGoalCallback(boost::bind(&getNewGoal,&server));
+  server.registerPreemptCallback(boost::bind(&getPreemptRequest,&server));
   server.start();
 
-  ros::spin();
+  ros::Rate loop(10);
 
-  ros::Publisher stop_pub = n.advertise<std_msgs::String>("stop_robot", 1000);
+  while (ros::ok()) {
+    if (server.isActive()) {
+      if (!executor->goalReached() && !executor->failed()) {
+        executor->executeActionStep();
+      }
+      else if (executor->goalReached()) {
+        ROS_INFO("Execution succeded");
+        if(server.isActive())
+          server.setSucceeded();
+      } 
+      else {
+        ROS_INFO("Execution failed");
+        if(server.isActive())
+          server.setAborted();
+      }
+    }
+
+    ros::spinOnce();
+  }
+
+  ROS_INFO_STREAM(name << ": finished");
   std_msgs::String stop_msg;
   stop_msg.data = name;
   stop_pub.publish(stop_msg);

@@ -29,8 +29,7 @@ acc(l2,l5).
 acc(l3,l4).
 acc(l4,l5).
 acc(l6,l7).
-acc(l6,l8).
-acc(l7,l9).
+%acc(l6,l8).
 acc(l8,l9).
 
 dooracc(L1,D,L2) :- hasdoor(L1,D), hasdoor(L2,D), L1 != L2, door(D), location(L1), location(L2).

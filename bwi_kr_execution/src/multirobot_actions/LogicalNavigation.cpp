@@ -69,7 +69,8 @@ void LogicalNavigation::run() {
     request_in_progress = true;
   }
 
-  bool finished_before_timeout = lnac->waitForResult(ros::Duration(0.5f));
+  ros::Duration timeout = (name == "noop") ? ros::Duration(10) : ros::Duration(5);
+  bool finished_before_timeout = lnac->waitForResult(timeout);
 
   // If the action finished, need to do some work here.
   if (finished_before_timeout) {

@@ -27,8 +27,11 @@ at(L2,I) :- goto(L1,L2,I),I>0,I=n-1.
 :- goto(L1,L2,1), exgoto(R,L2,L1,1).
 
 open(D,I) :- waitforopen(D,I),I>0,I=n-1.
-:- waitforopen(D,I), not facing(D,I-1),I>0,I=n-1.
+facing(D,I) :- waitforopen(D,I),I>0,I=n-1.
+%:- waitforopen(D,I), not facing(D,I-1),I>0,I=n-1.
+:- waitforopen(D,I), facing(D,I-1),I>0,I=n-1.
 :- waitforopen(D,I), open(D,I-1),I>0,I=n-1.
+:- waitforopen(D,I), at(L,I-1), not hasdoor(L,D),I>0,I=n-1.
 :- waitforopen(D,I), 0{exopendoor(R,D,J)}0,I>0,I=n-1.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
