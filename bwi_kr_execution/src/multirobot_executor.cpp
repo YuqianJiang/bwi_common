@@ -129,7 +129,7 @@ int main(int argc, char**argv) {
   if(domainDirectory.at(domainDirectory.size()-1) != '/')
     domainDirectory += '/';
 
-  domainDirectory = ros::package::getPath("bwi_kr_execution")+"/domain_simulation_new/";
+  domainDirectory = ros::package::getPath("bwi_kr_execution")+"/domain_new/";
 
   name = n.getNamespace().substr(2);
   string queryDir = "/tmp/bwi_action_execution/"+name+"/";
@@ -175,12 +175,12 @@ int main(int argc, char**argv) {
         executor->executeActionStep();
       }
       else if (executor->goalReached()) {
-        ROS_INFO("Execution succeded");
+        ROS_INFO_STREAM(name << ": Execution succeded");
         if(server.isActive())
           server.setSucceeded();
       } 
       else {
-        ROS_INFO("Execution failed");
+        ROS_INFO_STREAM(name << ": Execution failed");
         if(server.isActive())
           server.setAborted();
       }
@@ -189,7 +189,7 @@ int main(int argc, char**argv) {
     ros::spinOnce();
   }
 
-  ROS_INFO_STREAM(name << ": finished");
+  ROS_INFO_STREAM(name << ": stopped");
   std_msgs::String stop_msg;
   stop_msg.data = name;
   stop_pub.publish(stop_msg);

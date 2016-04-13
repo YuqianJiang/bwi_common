@@ -139,6 +139,9 @@ void writeExternalFluents(const map<string,Robot*>::iterator current, const map<
     externalFile << previous->second->externalFluents.str();
   }
 
+  externalFile << "#program cumulative(n)." << endl;
+  externalFile << ":~ cost(X,Y). [X@1,Y]" << endl << ":~ collisioncost(X,Y). [X@1,Y]" << endl << ":~ param(X,Y). [X/2@1,Y]" << endl;
+
   //put progress here
   /*
   for (vector<string>::iterator it = progress.variables.begin(); it != progress.variables.end();) {
@@ -183,7 +186,17 @@ bool plan(bwi_kr_execution::MultirobotComputePlan::Request &req,
   }
   it->second->goal.erase(it->second->goal.begin(), it->second->goal.end());
   transform(req.goal.begin(),req.goal.end(),back_inserter(it->second->goal),TranslateRule());
+  if (it->second->goal.size() == 0) {
+    res.plan = bwi_kr_execution::AnswerSet();
+    return true;
+  }
+
+  ofstream externalFile(it->second->externalFilePath.c_str());
+  externalFile << "#program cumulative(n)." << endl;
+  externalFile << ":~ cost(X,Y). [X@1,Y]" << endl << ":~ collisioncost(X,Y). [X@1,Y]" << endl << ":~ param(X,Y). [X/2@1,Y]" << endl;
+  externalFile.close();
   it->second->plan = planHelper(it);
+
   if (!it->second->plan.isSatisfied()) {
     TranslateAnswerSet translator;
     res.plan = translator(it->second->plan);
@@ -224,6 +237,8 @@ bool plan(bwi_kr_execution::MultirobotComputePlan::Request &req,
     }
   }
   else {
+    ofstream externalFile(it->second->externalFilePath.c_str());
+    externalFile.close();
     TranslateAnswerSet translator;
     res.plan = translator(it->second->plan);
   }
@@ -250,6 +265,11 @@ bool update(bwi_kr_execution::MultirobotUpdateFluents::Request &req,
   vector<AspRule> query;
   AnswerSet current = it->second->reasoner->currentStateQuery(query);
   transform(current.getFluents().begin(),current.getFluents().end(),back_inserter(res.state),TranslateFluent());
+
+  if ((!it->second->goal.empty()) && (it->second->reasoner->currentStateQuery(it->second->goal).isSatisfied())) {
+    it->second->goal.erase(it->second->goal.begin(), it->second->goal.end());
+    ROS_INFO_STREAM(it->first << ": reached goal");
+  } 
   return true;
 }
 

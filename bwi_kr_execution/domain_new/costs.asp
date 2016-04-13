@@ -52,9 +52,9 @@ cumucost(X,n-1) :- X = #sum { Y,I: cost(Y,I) }, n>1.
 cumuparam(X,n-1) :- not shared(n-1), X = #sum { Y,I: param(Y,I) }, n>1.
 cumuparam(X,n-1) :- shared(n-1), X = #sum { Y,I: param(Y,I) , shared(I) }, n>1.
 
-:~ cost(X,Y). [X@1,Y]
-:~ collisioncost(X,Y). [X@1,Y]
-:~ param(X,Y). [X/2@1,Y]
+%:~ cost(X,Y). [X@1,Y]
+%:~ collisioncost(X,Y). [X@1,Y]
+%:~ param(X,Y). [X/2@1,Y]
 
 #show cost/2.
 %#show param/2.

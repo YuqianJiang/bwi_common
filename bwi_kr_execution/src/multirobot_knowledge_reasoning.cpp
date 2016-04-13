@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
   if(domainDirectory.at(domainDirectory.size()-1) != '/')
     domainDirectory += '/';
 
-  domainDirectory = ros::package::getPath("bwi_kr_execution")+"/domain_simulation_new/";
+  domainDirectory = ros::package::getPath("bwi_kr_execution")+"/domain_new/";
   string name = n.getNamespace().substr(2);
   string queryDir = "/tmp/bwi_action_execution/"+name+"/";
   string currentFilePath = "/tmp/bwi_action_execution/"+name+"/current.asp";
