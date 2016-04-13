@@ -31,6 +31,12 @@ target_link_libraries(random_persons_controller
   ${catkin_LIBRARIES}
 )
 
+add_executable(random_persons_controller_new src/nodes/random_persons_controller_new.cpp)
+target_link_libraries(random_persons_controller_new
+  ${Boost_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+
 #install all targets
 foreach(dir entities gazebo launch persons urdf)
   install(DIRECTORY ${dir}/
