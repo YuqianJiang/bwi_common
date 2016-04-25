@@ -30,7 +30,7 @@ namespace bwi_krexec {
     
   
 GoTo::GoTo(const std::string& from, const std::string& to): 
-              LogicalNavigation("goto",createVector(to)),
+              LogicalNavigation("approacharea",createVector(to)),
               failed(false){}
  
  

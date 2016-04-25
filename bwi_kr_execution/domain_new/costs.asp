@@ -1,14 +1,14 @@
 #program base.
 dist(l1,l2,3).
 dist(l2,l1,3).
-dist(l1,l3,4).
-dist(l3,l1,4).
+dist(l1,l3,5).
+dist(l3,l1,5).
 dist(l2,l5,2).
 dist(l5,l2,2).
 dist(l3,l4,5).
 dist(l4,l3,5).
-dist(l4,l5,2).
-dist(l5,l4,2).
+dist(l4,l5,3).
+dist(l5,l4,3).
 dist(l6,l7,1).
 dist(l7,l6,1).
 %dist(l6,l8,4).

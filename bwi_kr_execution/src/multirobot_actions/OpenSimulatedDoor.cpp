@@ -22,7 +22,7 @@ void OpenSimulatedDoor::run() {
   NodeHandle n;
 
   if (!requestSent) {
-    //ros::Duration(27).sleep();
+    ros::Duration(25).sleep();
 
     ServiceClient doorClient = n.serviceClient<bwi_msgs::DoorHandlerInterface> ("/update_doors");
     doorClient.waitForExistence();

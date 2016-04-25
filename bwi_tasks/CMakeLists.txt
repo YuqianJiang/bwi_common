@@ -54,6 +54,10 @@ add_executable(multi_robot_navigation src/multi_robot_navigation.cpp)
 add_dependencies(multi_robot_navigation ${catkin_EXPORTED_TARGETS})
 target_link_libraries(multi_robot_navigation ${catkin_LIBRARIES})
 
+add_executable(multi_robot_task src/multi_robot_task.cpp)
+add_dependencies(multi_robot_task ${catkin_EXPORTED_TARGETS})
+target_link_libraries(multi_robot_task ${catkin_LIBRARIES})
+
 install(TARGETS
           back_and_forth_node
           between_doors
@@ -62,4 +66,5 @@ install(TARGETS
           meeting_experiment
           visit_door_list
           multi_robot_navigation
+          multi_robot_task
         RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

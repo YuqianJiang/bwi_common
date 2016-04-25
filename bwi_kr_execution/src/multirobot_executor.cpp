@@ -92,6 +92,10 @@ void acceptNewPlan(const bwi_kr_execution::NewPlan::ConstPtr& np_msg) {
 
 void getNewGoal(Server *as) {
   ROS_INFO("accepting new goal");
+  //  create initial state
+  LogicalNavigation setInitialState("noop");
+  setInitialState.run();
+  
   const bwi_kr_execution::ExecutePlanGoalConstPtr& goal = as->acceptNewGoal();
   vector<AspRule> goalRules;
   transform(goal->aspGoal.begin(),goal->aspGoal.end(),back_inserter(goalRules),TranslateRule());

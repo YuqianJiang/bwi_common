@@ -4,7 +4,7 @@
   <arg name="num_persons" default="3" />
   <arg name="urdf_file" default="$(find bwi_gazebo_entities)/persons/automated_person.urdf.xacro" />
 
-  <node name="random_persons_controller" pkg="bwi_gazebo_entities" type="random_persons_controller"
+  <node name="random_persons_controller_new" pkg="bwi_gazebo_entities" type="random_persons_controller_new"
     >
     <!-- launch-prefix="valgrind" -->
     <param name="map_file" value="$(arg map_file)" />

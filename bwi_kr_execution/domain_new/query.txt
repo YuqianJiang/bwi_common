@@ -1,5 +1,10 @@
-at(l5,0).
+at(l6,0).
+facing(d3_414a1,0).
 
 #program volatile(n).
 #external query(n).
-:- not at(l7,n-1), query(n).
+:- not at(l4,n-1), query(n).
+
+:~ cost(X,Y). [X@1,Y]
+:~ collisioncost(X,Y). [X@1,Y]
+:~ param(X,Y). [X/2@1,Y]

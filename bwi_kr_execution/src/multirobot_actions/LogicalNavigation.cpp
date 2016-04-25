@@ -41,7 +41,7 @@ LogicalNavigation::~LogicalNavigation() {
 
 struct PlannerAtom2AspFluent {
   bwi_kr_execution::AspFluent operator()(const bwi_planning_common::PlannerAtom& atom) {
-    
+
     bwi_kr_execution::AspFluent fluent;
     fluent.name = atom.name;
     if(!atom.value.empty()) {
@@ -81,9 +81,19 @@ void LogicalNavigation::run() {
     ros::ServiceClient krClient = n.serviceClient<bwi_kr_execution::UpdateFluents> ( "update_fluents" );
     krClient.waitForExistence();
     bwi_kr_execution::UpdateFluents uf;
-    transform(result->observations.begin(),
-              result->observations.end(),
-              back_inserter(uf.request.fluents),PlannerAtom2AspFluent());
+
+    //transform(result->observations.begin(),
+    //          result->observations.end(),
+    //          back_inserter(uf.request.fluents),PlannerAtom2AspFluent());
+
+    //filter out locations not in ASP
+    vector<bwi_planning_common::PlannerAtom>::const_iterator it = result->observations.begin();
+    for (; it < result->observations.end(); ++it) {
+      if (!((it->name == "at") && (it->value[0].size() > 2))) {
+        uf.request.fluents.push_back(PlannerAtom2AspFluent()(*it));
+      }
+    }
+
     krClient.call(uf);
     // Mark the request as completed.
     done = true;
