@@ -26,7 +26,25 @@ SET( lexec_SRC ${lexec_SRC}
    ${CMAKE_CURRENT_SOURCE_DIR}/learning/RLActionExecutor.cpp
   PARENT_SCOPE)
 	
+SET( multiexec_SRC ${spexec_SRC}
+  ${CMAKE_CURRENT_SOURCE_DIR}/multirobot_executor.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/msgs_utils.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/RemoteReasoner.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/MultirobotRemoteReasoner.cpp  
+  ${CMAKE_CURRENT_SOURCE_DIR}/StaticFacts.cpp  
+  PARENT_SCOPE)
+
 SET( krreasoner_SRC ${krreasoner_SRC}
   ${CMAKE_CURRENT_SOURCE_DIR}/knowledge_reasoning.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/msgs_utils.cpp
+PARENT_SCOPE)
+
+SET( multikr_SRC ${multikr_SRC}
+  ${CMAKE_CURRENT_SOURCE_DIR}/multirobot_knowledge_reasoning.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/msgs_utils.cpp
+PARENT_SCOPE)
+
+SET( multicr_SRC ${multicr_SRC}
+  ${CMAKE_CURRENT_SOURCE_DIR}/multirobot_central_reasoning.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/msgs_utils.cpp
 PARENT_SCOPE)

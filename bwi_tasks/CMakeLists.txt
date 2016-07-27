@@ -64,6 +64,10 @@ add_executable(visit_door_list_gui src/visit_door_list_gui.cpp)
 add_dependencies(visit_door_list_gui ${catkin_EXPORTED_TARGETS})
 target_link_libraries(visit_door_list_gui ${catkin_LIBRARIES})
 
+add_executable(multi_robot_navigation src/multi_robot_navigation.cpp)
+add_dependencies(multi_robot_navigation ${catkin_EXPORTED_TARGETS})
+target_link_libraries(multi_robot_navigation ${catkin_LIBRARIES})
+
 install(TARGETS
           back_and_forth_node
           between_doors
@@ -75,4 +79,5 @@ install(TARGETS
           simulator_learning_tasks_node
           visit_door_list
           visit_door_list_gui
+          multi_robot_navigation
         RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

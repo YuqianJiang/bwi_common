@@ -18,7 +18,8 @@ add_message_files(
   FILES
     AnswerSet.msg
     AspFluent.msg
-    AspRule.msg)
+    AspRule.msg
+    NewPlan.msg)
 
 ## Generate services in the 'srv' folder
 add_service_files(
@@ -27,7 +28,9 @@ add_service_files(
     ComputePlan.srv
     CurrentStateQuery.srv
     IsPlanValid.srv
-    UpdateFluents.srv)
+    UpdateFluents.srv
+    MultirobotComputePlan.srv
+    MultirobotUpdateFluents.srv)
 
 ## Generate actions in the 'action' folder
 add_action_files(FILES ExecutePlan.action)
@@ -70,10 +73,20 @@ add_dependencies(kractions ${catkin_EXPORTED_TARGETS})
 add_dependencies(kractions ${${PROJECT_NAME}_EXPORTED_TARGETS})
 target_link_libraries(kractions actasp)
 
+set(multirobot_kractions_SRC)
+add_subdirectory(src/multirobot_actions)
+add_library(multirobot_kractions ${multirobot_kractions_SRC})
+add_dependencies(multirobot_kractions ${catkin_EXPORTED_TARGETS})
+add_dependencies(multirobot_kractions ${${PROJECT_NAME}_EXPORTED_TARGETS})
+target_link_libraries(multirobot_kractions actasp)
+
 set(spexec_SRC)
 set(anyexec_SRC)
 set(lexec_SRC)
+set(multiexec_SRC)
 set(krreasoner_SRC)
+set(multikr_SRC)
+set(multicr_SRC)
 
 add_subdirectory(src)
 add_executable(single_plan_executor_node ${spexec_SRC})
@@ -87,10 +100,22 @@ target_link_libraries(any_plan_executor_node
 add_executable(learning_executor_node ${lexec_SRC})
 target_link_libraries(learning_executor_node
   ${catkin_LIBRARIES} actasp kractions)
+
+add_executable(multirobot_executor_node ${multiexec_SRC})
+target_link_libraries(multirobot_executor_node
+  ${catkin_LIBRARIES} actasp multirobot_kractions)
  
 add_executable(knowledge_reasoning_node  ${krreasoner_SRC})
 target_link_libraries(knowledge_reasoning_node
   ${catkin_LIBRARIES} actasp kractions)
+
+add_executable(multirobot_knowledge_reasoning_node  ${multikr_SRC})
+target_link_libraries(multirobot_knowledge_reasoning_node
+  ${catkin_LIBRARIES} actasp multirobot_kractions)
+
+add_executable(multirobot_central_reasoning_node  ${multicr_SRC})
+target_link_libraries(multirobot_central_reasoning_node
+  ${catkin_LIBRARIES} actasp)
 
 add_executable(asp_formatter src/asp_formatter.cpp)
 target_link_libraries(asp_formatter actasp)

@@ -1,0 +1,13 @@
+at(l4,0).
+
+#program volatile(n).
+#external query(n).
+:- not at(l9,n-1), query(n).
+expectedcost(X+Y/2,n-1) :- cumucost(X,n-1), cumuparam(Y,n-1), query(n).
+
+%:~ cost(X,Y). [X@1,Y]
+:~ expectedcost(X,Y). [X@1,Y]
+:~ collisioncost(X,Y). [X@1,Y]
+%:~ cumuparam(X,Y=n). [X/2@1,Y]
+
+#show expectedcost/2.

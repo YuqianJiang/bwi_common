@@ -1,0 +1,6 @@
+#program base.
+#const mu = 100.
+#const rho = 0.
+exopendoor(marvin,d1,3).
+excumucost(marvin,25,3).
+excumuparam(marvin,2,3).
