@@ -31,7 +31,16 @@ namespace bwi_krexec {
   
 GoTo::GoTo(const std::string& from, const std::string& to): 
               LogicalNavigation("goto",createVector(to)),
-              failed(false){}
+              failed(false),
+              from(from),
+              to(to){}
+
+vector<string> GoTo::getParameters() const {
+  vector<string> paramVector;
+  paramVector.push_back(from);
+  paramVector.push_back(to);
+  return paramVector;
+}
  
  
  struct IsFluentAt {

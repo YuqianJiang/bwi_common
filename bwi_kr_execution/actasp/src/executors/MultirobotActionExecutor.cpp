@@ -137,7 +137,7 @@ void MultirobotActionExecutor::executeActionStep() {
       for_each(plan.begin(),plan.end(),ActionDeleter());
       plan.clear();
 
-      //computePlan();
+      computePlan();
     }
 
   }

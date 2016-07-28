@@ -21,11 +21,15 @@ public:
   Action *cloneAndInit(const actasp::AspFluent & fluent) const {
     return new GoTo(fluent.getParameters().at(0), fluent.getParameters().at(1));
   }
+
+  virtual std::vector<std::string> getParameters() const;
   
   virtual Action *clone() const {return new GoTo(*this);}
     
 private:
   bool failed;
+  std::string from;
+  std::string to;
 };  
 }
 

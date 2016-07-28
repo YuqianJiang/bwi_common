@@ -75,6 +75,6 @@ std::vector<std::string> WaitForOpen::getParameters() const {
   return param;
 }
 
-bwi_krexec::ActionFactory waitForOpen(new WaitForOpen(), true);
+bwi_krexec::ActionFactory waitForOpen(new WaitForOpen());
 
 }
