@@ -1,6 +1,6 @@
 
 
-#include <actasp/executors/ReplanningActionExecutor.h>
+#include <actasp/executors/MultirobotActionExecutor.h>
 
 #include <actasp/AspKR.h>
 #include <actasp/AnswerSet.h>
@@ -14,16 +14,19 @@
 #include <list>
 #include <algorithm>
 #include <iterator>
+#include <ros/time.h>
+#include <ros/console.h>
 
 using namespace std;
 
 namespace actasp {
 
-ReplanningActionExecutor::ReplanningActionExecutor(actasp::AspKR* reasoner,
+MultirobotActionExecutor::MultirobotActionExecutor(actasp::AspKR* reasoner,
     actasp::Planner *planner,
     const std::map<std::string, Action * > &actionMap
                                                   ) throw (std::invalid_argument) :
   goalRules(),
+  isGoalSet(false),
   isGoalReached(true),
   hasFailed(false),
   actionMap(),
@@ -32,17 +35,18 @@ ReplanningActionExecutor::ReplanningActionExecutor(actasp::AspKR* reasoner,
   newAction(true),
   kr(reasoner),
   planner(planner),
-  executionObservers(){
+  executionObservers(),
+  lastPlanTime(){
   if (reasoner == NULL)
-    throw invalid_argument("ReplanningActionExecutor: reasoner is NULL");
+    throw invalid_argument("MultirobotActionExecutor: reasoner is NULL");
 
   if (planner == NULL)
-    throw invalid_argument("ReplanningActionExecutor: planner is NULL");
+    throw invalid_argument("MultirobotActionExecutor: planner is NULL");
 
   transform(actionMap.begin(),actionMap.end(),inserter(this->actionMap,this->actionMap.begin()),ActionMapDeepCopy());
 }
 
-ReplanningActionExecutor::~ReplanningActionExecutor() {
+MultirobotActionExecutor::~MultirobotActionExecutor() {
   for_each(actionMap.begin(),actionMap.end(),ActionMapDelete());
 }
 
@@ -58,7 +62,7 @@ struct NotifyNewPlan {
   
 };
 
-void ReplanningActionExecutor::computePlan() {
+void MultirobotActionExecutor::computePlan() {
   isGoalReached = kr->currentStateQuery(goalRules).isSatisfied();
 
   if (!isGoalReached) {
@@ -70,19 +74,39 @@ void ReplanningActionExecutor::computePlan() {
   
   if(!hasFailed)
     for_each(planningObservers.begin(),planningObservers.end(),NotifyNewPlan(planToAnswerSet(plan)));
+
+  lastPlanTime = ros::Time::now().toSec();
   
 }
 
-void ReplanningActionExecutor::setGoal(const std::vector<actasp::AspRule>& goalRules) throw() {
+void MultirobotActionExecutor::setGoal(const std::vector<actasp::AspRule>& goalRules) throw() {
   this->goalRules = goalRules;
+  this->isGoalSet = true;
 
   computePlan();
 }
 
+void MultirobotActionExecutor::acceptNewPlan(const double time, const actasp::AnswerSet newPlan) {
+  if (time > lastPlanTime) {
+    for_each(plan.begin(),plan.end(),ActionDeleter());
+    plan.clear();
+    plan = newPlan.instantiateActions(actionMap);
+  
+    isGoalReached = kr->currentStateQuery(goalRules).isSatisfied();
+    if(plan.empty() && (!isGoalReached)) {
+      hasFailed = true;
+    }
+    else {
+      for_each(planningObservers.begin(),planningObservers.end(),NotifyNewPlan(planToAnswerSet(plan)));
+      lastPlanTime = ros::Time::now().toSec();
+      actionCounter = 0;
+    }
+    lastPlanTime = ros::Time::now().toSec();
+  }
+}
 
 
-
-void ReplanningActionExecutor::executeActionStep() {
+void MultirobotActionExecutor::executeActionStep() {
 
   if (isGoalReached || hasFailed)
     return;
@@ -94,7 +118,6 @@ void ReplanningActionExecutor::executeActionStep() {
       for_each(executionObservers.begin(),executionObservers.end(),NotifyActionStart(current->toFluent(actionCounter)));
       newAction = false;
   }
- 
 
   current->run();
 
@@ -115,7 +138,6 @@ void ReplanningActionExecutor::executeActionStep() {
       plan.clear();
 
       computePlan();
-
     }
 
   }
@@ -124,19 +146,19 @@ void ReplanningActionExecutor::executeActionStep() {
   
 }
 
-void ReplanningActionExecutor::addExecutionObserver(ExecutionObserver *observer) throw() {
+void MultirobotActionExecutor::addExecutionObserver(ExecutionObserver *observer) throw() {
   executionObservers.push_back(observer);
 }
 
-void ReplanningActionExecutor::removeExecutionObserver(ExecutionObserver *observer) throw() {
+void MultirobotActionExecutor::removeExecutionObserver(ExecutionObserver *observer) throw() {
   executionObservers.remove(observer);
 }
 
-void ReplanningActionExecutor::addPlanningObserver(PlanningObserver *observer) throw() {
+void MultirobotActionExecutor::addPlanningObserver(PlanningObserver *observer) throw() {
   planningObservers.push_back(observer);
 }
 
-void ReplanningActionExecutor::removePlanningObserver(PlanningObserver *observer) throw() {
+void MultirobotActionExecutor::removePlanningObserver(PlanningObserver *observer) throw() {
   planningObservers.remove(observer);
 }
 

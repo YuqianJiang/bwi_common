@@ -1,0 +1,5 @@
+string name
+AspFluent[] fluents
+---
+bool consistent
+AspFluent[] state
