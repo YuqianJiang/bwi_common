@@ -1,7 +1,7 @@
 <launch>
 
   <arg name="simulation" default="false" />
-  <arg name="domain" default="$(find bwi_kr_execution)/domain_real/" />
+  <arg name="domain" default="$(find bwi_kr_execution)/domain_multi_real/" />
   <arg name="executor" default="multirobot_executor_node" />
   <arg name="ns" default="bender" />
  

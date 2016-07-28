@@ -142,10 +142,14 @@ int main(int argc, char**argv) {
   string currentFilePath = "/tmp/bwi_action_execution/"+name+"/current.asp";
   boost::filesystem::create_directories(queryDir);
 
-  ros::Publisher start_pub = n.advertise<bwi_msgs::AvailableRobot>("start_planning_robot", 100);
+  ros::Publisher start_pub = n.advertise<bwi_msgs::AvailableRobot>("/start_planning_robot", 100);
   while (start_pub.getNumSubscribers() == 0) {
     ros::Duration(.1).sleep();
   }
+  bwi_msgs::AvailableRobot msg;
+  msg.name = name;
+  msg.type = 1;
+  start_pub.publish(msg);
 
   bool simulating;
   privateNode.param<bool>("simulation",simulating,false);

@@ -60,7 +60,7 @@ void LogicalNavigation::run() {
   ROS_DEBUG_STREAM("Executing " << name);
 
   if (!request_in_progress) {
-    lnac = new actionlib::SimpleActionClient<bwi_msgs::LogicalNavigationAction>("execute_logical_goal",
+    lnac = new actionlib::SimpleActionClient<bwi_msgs::LogicalNavigationAction>("/execute_logical_goal",
                                                                                                  true);
     lnac->waitForServer();
     goal.command.name = name;
@@ -89,10 +89,13 @@ void LogicalNavigation::run() {
     //filter out locations not in ASP
     vector<bwi_planning_common::PlannerAtom>::const_iterator it = result->observations.begin();
     for (; it < result->observations.end(); ++it) {
+      ROS_INFO("has new fluents");
       //if (!((it->name == "at") && (it->value[0].size() > 2))) {
         uf.request.fluents.push_back(PlannerAtom2AspFluent()(*it));
       //}
     }
+
+    ROS_INFO("updating");
 
     krClient.call(uf);
     // Mark the request as completed.

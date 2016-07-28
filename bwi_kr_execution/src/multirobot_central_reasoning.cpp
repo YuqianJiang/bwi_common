@@ -28,7 +28,7 @@ using namespace std;
 using namespace actasp;
 using namespace bwi_krexec;
 
-string common_directory = ros::package::getPath("bwi_kr_execution")+"/domain_real/";
+string common_directory = ros::package::getPath("bwi_kr_execution")+"/domain_multi_real/";
 
 struct Robot {
   Robot(const string s, const ros::ServiceServer plan_server, const ros::ServiceServer state_server, const ros::Subscriber stop_subscriber,
