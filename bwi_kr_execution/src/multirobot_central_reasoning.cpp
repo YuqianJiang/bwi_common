@@ -28,7 +28,7 @@ using namespace std;
 using namespace actasp;
 using namespace bwi_krexec;
 
-string common_directory = ros::package::getPath("bwi_kr_execution")+"/domain_new/";
+string common_directory = ros::package::getPath("bwi_kr_execution")+"/domain_real/";
 
 struct Robot {
   Robot(const string s, const ros::ServiceServer plan_server, const ros::ServiceServer state_server, const ros::Subscriber stop_subscriber,
@@ -326,6 +326,11 @@ void startAllRobots(const bwi_msgs::AvailableRobotArray::ConstPtr& allRobots)
   }
 }
 
+void startOneRobot(const bwi_msgs::AvailableRobot::ConstPtr& robot)
+{
+  startRobot(robot->name);
+}
+
 struct DeleteAction {
   
   void operator()(Action *act) {
@@ -391,6 +396,7 @@ int main(int argc, char **argv) {
   nh.param<bool>("coordination",coordination,true);
 
   ros::Subscriber start_listener = n.subscribe("available_robots",1,startAllRobots);
+  ros::Subscriber start_one_listener = n.subscribe("start_planning_robot",1,startOneRobot);
 
   actionMap.insert(std::make_pair(std::string("approach"), new ActionWithTime("approach",1)));
   actionMap.insert(std::make_pair(std::string("gothrough"), new ActionWithTime("gothrough",1)));

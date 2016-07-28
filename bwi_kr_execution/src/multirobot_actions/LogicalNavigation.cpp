@@ -89,9 +89,9 @@ void LogicalNavigation::run() {
     //filter out locations not in ASP
     vector<bwi_planning_common::PlannerAtom>::const_iterator it = result->observations.begin();
     for (; it < result->observations.end(); ++it) {
-      if (!((it->name == "at") && (it->value[0].size() > 2))) {
+      //if (!((it->name == "at") && (it->value[0].size() > 2))) {
         uf.request.fluents.push_back(PlannerAtom2AspFluent()(*it));
-      }
+      //}
     }
 
     krClient.call(uf);

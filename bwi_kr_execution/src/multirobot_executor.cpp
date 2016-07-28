@@ -27,6 +27,8 @@
 
 #include <string>
 
+#include "bwi_msgs/AvailableRobot.h"
+
 const int MAX_N = 20;
 const int PLANNER_TIMEOUT = 20; //seconds
 
@@ -133,12 +135,17 @@ int main(int argc, char**argv) {
   if(domainDirectory.at(domainDirectory.size()-1) != '/')
     domainDirectory += '/';
 
-  domainDirectory = ros::package::getPath("bwi_kr_execution")+"/domain_new/";
+  //domainDirectory = ros::package::getPath("bwi_kr_execution")+"/domain_new/";
 
   name = n.getNamespace().substr(2);
   string queryDir = "/tmp/bwi_action_execution/"+name+"/";
   string currentFilePath = "/tmp/bwi_action_execution/"+name+"/current.asp";
   boost::filesystem::create_directories(queryDir);
+
+  ros::Publisher start_pub = n.advertise<bwi_msgs::AvailableRobot>("start_planning_robot", 100);
+  while (start_pub.getNumSubscribers() == 0) {
+    ros::Duration(.1).sleep();
+  }
 
   bool simulating;
   privateNode.param<bool>("simulation",simulating,false);
