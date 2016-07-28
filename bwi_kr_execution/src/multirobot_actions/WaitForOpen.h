@@ -6,6 +6,9 @@
 
 #include <string>
 
+#include "std_msgs/String.h"
+#include <ros/ros.h>
+
 namespace bwi_krexec {
 
 class WaitForOpen : public actasp::Action{
@@ -16,9 +19,13 @@ public:
   
   std::string getName() const {return "waitforopen";}
   
+  void openCallback(const std_msgs::String::ConstPtr& msg);
+
   void run();
   
   bool hasFinished() const {return done;}
+
+  bool hasFailed() const {return failed;}
   
   actasp::Action *cloneAndInit(const actasp::AspFluent & fluent) const;
   
@@ -29,7 +36,11 @@ private:
  std::vector<std::string> getParameters() const;
  
  std::string door;
+ bool open;
  bool done;
+ bool failed;
+ static ros::Subscriber open_listener;
+ static bool subscriber_set;
  
 };
 

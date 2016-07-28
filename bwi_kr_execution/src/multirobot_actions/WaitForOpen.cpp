@@ -8,7 +8,6 @@
 
 #include "actasp/AspFluent.h"
 
-#include <ros/ros.h>
 
 using namespace std;
 using namespace ros;
@@ -16,16 +15,32 @@ using namespace ros;
 namespace bwi_krexec {
 
 
-WaitForOpen::WaitForOpen() : door(), done(false) {}
+WaitForOpen::WaitForOpen() : door(), open(false), done(false), failed(false) {}
+
+ros::Subscriber WaitForOpen::open_listener;
+bool WaitForOpen::subscriber_set(false);
+
+void WaitForOpen::openCallback(const std_msgs::String::ConstPtr& msg) {
+  if (msg->data == door) {
+    open = true;
+  }
+}
 
 void WaitForOpen::run() {
   NodeHandle n;
 
+  if (!open) {
+    if (!subscriber_set) {
+      open_listener = n.subscribe("open_door", 1, &WaitForOpen::openCallback, this);
+    }
+    return;
+  }
+
   vector<string> params;
   params.push_back(door);
-  LogicalNavigation senseDoor("sensedoor",params);
+  LogicalNavigation approach("approach",params);
 
-  senseDoor.run();
+  approach.run();
 
   ros::ServiceClient currentClient = n.serviceClient<bwi_kr_execution::CurrentStateQuery> ("current_state_query");
   bwi_kr_execution::AspFluent openFluent;
@@ -41,7 +56,8 @@ void WaitForOpen::run() {
 
   currentClient.call(csq);
 
-  done = csq.response.answer.satisfied;
+  failed = csq.response.answer.satisfied;
+  done = true;
 
 }
 
