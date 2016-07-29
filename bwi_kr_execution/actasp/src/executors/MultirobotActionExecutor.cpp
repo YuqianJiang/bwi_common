@@ -131,8 +131,8 @@ void MultirobotActionExecutor::executeActionStep() {
     
     newAction = true;
 
-    if (plan.empty() || !kr->isPlanValid(planToAnswerSet(plan),goalRules)) {
-      
+    //if (plan.empty() || !kr->isPlanValid(planToAnswerSet(plan),goalRules)) {
+    if (plan.empty()) {  
       //if not valid, replan
       for_each(plan.begin(),plan.end(),ActionDeleter());
       plan.clear();

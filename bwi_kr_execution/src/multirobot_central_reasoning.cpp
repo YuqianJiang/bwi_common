@@ -140,7 +140,7 @@ void writeExternalFluents(const map<string,Robot*>::iterator current, const map<
   }
 
   externalFile << "#program cumulative(n)." << endl;
-  externalFile << ":~ cost(X,Y). [X@1,Y]" << endl << ":~ collisioncost(X,Y). [X@1,Y]" << endl << ":~ param(X,Y). [X/2@1,Y]" << endl;
+  externalFile << ":~ expectedcost(X,Y). [X@1,Y]" << endl << ":~ collisioncost(X,Y). [X@1,Y]" << endl;
 
   //put progress here
   /*
