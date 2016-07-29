@@ -28,11 +28,23 @@ OpenDoor::OpenDoor() :
 
   
 void OpenDoor::run() {
+
   if(!asked) {
+    vector<string> params_1;
+    params_1.push_back("desk");
+    LogicalNavigation goAsk("goto",params_1);
+    goAsk.run();
+
     CallGUI askToOpen("askToOpen", CallGUI::DISPLAY,  "Can you open door " + door + ", please?");
     askToOpen.run();
     asked = true;
     startTime = ros::Time::now();
+
+    ros::Duration(10).sleep();
+    vector<string> params_2;
+    params_2.push_back(door);
+    LogicalNavigation approach("approach",params_2);
+    approach.run();
   }
   
   if(!open) {
@@ -61,7 +73,7 @@ void OpenDoor::run() {
     
     open = csq.response.answer.satisfied;
     
-    if(!open && (ros::Time::now() - startTime) > ros::Duration(15.0)) {
+    if(!open && (ros::Time::now() - startTime) > ros::Duration(30.0)) {
       failed = true;
       done = true;
     }
