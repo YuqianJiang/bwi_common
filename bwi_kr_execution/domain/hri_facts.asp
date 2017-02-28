@@ -38,7 +38,7 @@ hasoffice(jivko,l3_432).
 hasoffice(stacy,l3_502).
 
 %students in the lab
-%hasoffice(yuqian,l3_414b).
+hasoffice(yuqian,l3_414b).
 %hasoffice(pato,l3_414b).
 %hasoffice(max,l3_414b).
 
