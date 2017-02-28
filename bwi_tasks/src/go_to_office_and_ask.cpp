@@ -35,6 +35,13 @@ int main(int argc, char**argv) {
     fluent.variables.push_back(person);
 
     rule.body.push_back(fluent);
+
+    bwi_kr_execution::AspRule rule2;
+    bwi_kr_execution::AspFluent fluent2;
+    fluent2.name = "not facing";
+    fluent2.variables.push_back("d3_414b1");
+
+    rule2.body.push_back(fluent2);
     
     bwi_kr_execution::AspRule flag_rule;
     bwi_kr_execution::AspFluent find_person_flag;
@@ -43,7 +50,8 @@ int main(int argc, char**argv) {
 
     
     goal.aspGoal.push_back(rule);
-    goal.aspGoal.push_back(flag_rule);
+    goal.aspGoal.push_back(rule2);
+    //goal.aspGoal.push_back(flag_rule);
 
 
     ROS_INFO("sending goal");
