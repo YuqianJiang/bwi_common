@@ -8,7 +8,7 @@ goto(O,I) : object(O);
 callelevator(E,U,I) : elevator(E) , orientation(U); 
 changefloor(R,I) : room(R);
 searchroom(P,R1,I): person(P) , room(R1);
-askperson(P1,P2,I): person(P1) , person(P2);
+%askperson(P1,P2,I): person(P1) , person(P2);
 remind(P3,M,R2,I) : person(P3) , meeting(M,G,R2) , room(R2)
 }1 :- not noop(I), I>0, I=n-1.
 

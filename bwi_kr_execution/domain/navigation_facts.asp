@@ -585,7 +585,6 @@ object(o4_500_printer).
 inside(o4_500_printer,l4_500).
 
 
+badDoor(d3_414b3).
+badDoor(d3_414b3).
 
-badDoor(d3_418).
-badDoor(d3_414b1).
-badDoor(d3_414b2).
