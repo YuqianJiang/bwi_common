@@ -71,6 +71,10 @@ add_executable(visit_door_list_gui src/visit_door_list_gui.cpp)
 add_dependencies(visit_door_list_gui ${catkin_EXPORTED_TARGETS})
 target_link_libraries(visit_door_list_gui ${catkin_LIBRARIES})
 
+add_executable(visit_and_ask_list_node src/visit_and_ask_list.cpp)
+add_dependencies(visit_and_ask_list_node ${catkin_EXPORTED_TARGETS})
+target_link_libraries(visit_and_ask_list_node ${catkin_LIBRARIES})
+
 install(TARGETS
           back_and_forth_node
           between_doors

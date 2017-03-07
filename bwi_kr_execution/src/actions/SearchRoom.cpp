@@ -33,6 +33,8 @@ bool SearchRoom::pub_set(false);
   
 void SearchRoom::run() {
 
+  person[0] = toupper(person[0]);
+
   ros::NodeHandle n;
   if (!pub_set) { 
     ask_pub = n.advertise<sound_play::SoundRequest>("robotsound", 1000);
@@ -70,7 +72,7 @@ void SearchRoom::run() {
       waiting_speach = false;
       wait_over = true;
     }
-      
+
 
     //speak
     sound_play::SoundRequest sound_req;
@@ -93,15 +95,22 @@ void SearchRoom::run() {
   int response = searchRoom.getResponseIndex();
 
   if (response >= 0) {
-    CallGUI thank("thank", CallGUI::DISPLAY,  "Thank you!");
-    thank.run();
-    /*if (at) {
-      sound_play::SoundRequest sound_req;
-      sound_req.sound = sound_play::SoundRequest::SAY;
-      sound_req.command = sound_play::SoundRequest::PLAY_ONCE;
+    sound_play::SoundRequest sound_req;
+    sound_req.sound = sound_play::SoundRequest::SAY;
+    sound_req.command = sound_play::SoundRequest::PLAY_ONCE;
+    if (response > 0) {  
       sound_req.arg = "Thank you !";
-      ask_pub.publish(sound_req);
-    }*/
+      CallGUI thank("thank", CallGUI::DISPLAY,  "Thank you!");
+      thank.run();
+    }
+    else {
+      std::stringstream ss;
+      ss << "Hi " << person << "!";
+      sound_req.arg = ss.str();
+      CallGUI hi("hi", CallGUI::DISPLAY,  ss.str());
+      hi.run();
+    }
+    ask_pub.publish(sound_req);
   }else
     failed = true;
 
@@ -111,6 +120,7 @@ void SearchRoom::run() {
   bwi_kr_execution::UpdateFluents uf;
   bwi_kr_execution::AspFluent fluent;
   fluent.timeStep = 0;
+  person[0] = tolower(person[0]);
   fluent.variables.push_back(person);
   fluent.variables.push_back(room);
 
