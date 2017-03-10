@@ -2,6 +2,7 @@
 
 %action searchroom(P,R,I)  ask if person P is in room R
 inroom(P,R,I) :- searchroom(P,R,I), person(P), room(R), I>0, I=n-1.
+:- searchroom(P,R,I), {facing(D,I) : facing(D,I-3), door(D)}0, I>2, I=n-1.
 
 %:- searchroom(P,R,n), not facing(D,n-1) : hasdoor(R,D), not at(R,n-1), person(P), room(R).
 %:- searchroom(P,R,n), facing(D,n-1), open(D,n-1), hasdoor(R,D), person(P), room(R), door(D).
@@ -27,10 +28,10 @@ inroom(P,R,I) :- searchroom(P,R,I), person(P), room(R), I>0, I=n-1.
 
 %-inroom when all doors are closed; assume doors are open initially
 %alldoorsclosed(R,I) :- {not -open(D,I) : hasdoor(R,D)}0, hasdoor(R,D), door(D), room(R), I>0, I=n-1.
--inroom(P,R,I) :- {not -open(D,I) : not badDoor(D), hasdoor(R,D)}0, canbeinroom(P,R), I>0, I=n-1.
+-inroom(P,R,I) :- {not closed(D,I) : not badDoor(D), hasdoor(R,D)}0, canbeinroom(P,R), I>0, I=n-1.
 assumeopen(D,I) :- findPersonTask(P,I), canbeinroom(P,R), hasdoor(R,D), not facing(D,I-1), not badDoor(D), I>0, I=n-1.
 assumeopen(D,I) :- assumeopen(D,I-1), not closed(D,I), I>0, I=n-1.
-closed(D,I) :- facing(D,I), -open(D,I), I>=0, I=n-1.
+closed(D,I) :- facing(D,I), -open(D,I), {at(R,I-1):hasoffice(P,R)}0, I>0, I=n-1.
 closed(D,I) :- closed(D,I-1), not open(D,I), not assumeopen(D,I), I>0, I=n-1.
 :- opendoor(D,I), closed(D,I-1), I>0, I=n-1. 
 
