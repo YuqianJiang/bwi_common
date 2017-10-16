@@ -111,7 +111,7 @@ struct RuleToString4_2 {
         ruleStream << rule.head[i].toString();
 
       if (i < (size-1))
-        ruleStream << ", ";
+        ruleStream << " | ";
     }
 
     if (!(rule.body.empty()))
@@ -125,7 +125,7 @@ struct RuleToString4_2 {
         ruleStream << rule.body[i].toString();
 
       if (i < (size-1))
-        ruleStream << "| ";
+        ruleStream << ", ";
     }
 
     if (!(rule.head.empty() && rule.body.empty()))

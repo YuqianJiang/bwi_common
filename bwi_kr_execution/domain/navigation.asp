@@ -23,7 +23,7 @@ at(R2,I) :- gothrough(D,I), at(R1,I-1), dooracc(R1,D,R2), I>0, I=n-1.
 % to deal with the elevator door - multiple elevator rooms sharing one door
 -facing(D1,I) :- gothrough(D,I), door(D1), I>0, I=n-1.
 :- gothrough(D,I), not facing(D,I-1).
-:- gothrough(D,I), not open(D,I-1).
+:- gothrough(D,I), not open(D,I-1), not assumeopen(D,I-1).
 :- gothrough(D,I), at(R,I-1), not hasdoor(R,D).
 
 
@@ -63,7 +63,7 @@ facing(D,I) :- facing(D,I-1), not -facing(D,I), I>0, I=n-1.
 -facing(D,I) :- -facing(D,I-1), not facing(D,I), I>0, I=n-1.
 % open is inertial
 open(D,I) :- open(D,I-1), not -open(D,I), I>0, I=n-1.
--open(D,I) :- -open(D,I-1), not open(D,I), I>0, I=n-1.
+-open(D,I) :- -open(D,I-1), not open(D,I), not assumeopen(D,I), I>0, I=n-1.
 % beside is inertial
 beside(D,I) :- beside(D,I-1), not -beside(D,I), I>0, I=n-1.
 -beside(D,I) :- -beside(D,I-1), not beside(D,I), I>0, I=n-1.
