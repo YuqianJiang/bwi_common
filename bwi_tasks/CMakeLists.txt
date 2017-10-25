@@ -47,10 +47,6 @@ add_executable(look_for_person_node src/look_for_person.cpp)
 add_dependencies(look_for_person_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(look_for_person_node ${catkin_LIBRARIES})
 
-add_executable(go_to_office_and_ask_node src/go_to_office_and_ask.cpp)
-add_dependencies(go_to_office_and_ask_node ${catkin_EXPORTED_TARGETS})
-target_link_libraries(go_to_office_and_ask_node ${catkin_LIBRARIES})
-
 add_executable(meeting_experiment src/meeting_experiment.cpp)
 add_dependencies(meeting_experiment ${catkin_EXPORTED_TARGETS})
 target_link_libraries(meeting_experiment ${catkin_LIBRARIES})
@@ -74,6 +70,10 @@ target_link_libraries(visit_door_list_gui ${catkin_LIBRARIES})
 add_executable(visit_and_ask_list_node src/visit_and_ask_list.cpp)
 add_dependencies(visit_and_ask_list_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(visit_and_ask_list_node ${catkin_LIBRARIES})
+
+add_executable(hri_tasks_node src/hri_tasks.cpp)
+add_dependencies(hri_tasks_node ${catkin_EXPORTED_TARGETS})
+target_link_libraries(hri_tasks_node ${catkin_LIBRARIES})
 
 install(TARGETS
           back_and_forth_node
