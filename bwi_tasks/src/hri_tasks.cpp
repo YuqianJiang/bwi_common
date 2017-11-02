@@ -21,6 +21,7 @@ using namespace std;
 ros::ServiceClient guiClient;
 ros::ServiceClient krClient;
 ros::ServiceClient updateClient;
+ros::ServiceClient lnClient;
 bool isActive;
 std::vector<string> doors;
 Client* client;
@@ -280,6 +281,30 @@ bool validateTarget(string target) {
 bool updateRequesterInfo(string requester, string message_id) {
   transform(requester.begin(), requester.end(), requester.begin(), ::tolower);
 
+  //get current pose as approach point for the requester
+  tf::TransformListener listener;
+  tf::StampedTransform transform;
+  try{
+    listener.waitForTransform("/map", "/base_link", ros::Time(0), ros::Duration(1.0));
+    while (! listener.canTransform("/map", "/base_link", ros::Time(0))) {
+      ros::Duration(0.1).sleep();
+    }
+    listener.lookupTransform("/map", "/base_link",  
+                             ros::Time(0), transform);
+  }
+  catch (tf::TransformException ex){
+    ROS_ERROR("%s",ex.what());
+    ros::shutdown();
+  }
+  geometry_msgs::Pose msg;
+  tf::poseTFToMsg(transform, msg);
+
+  //add object to map
+  bwi_msgs::UpdateObject uo;
+  uo.request.object_name = requester+"_marker";
+  uo.request.pose = msg;
+  lnClient.call(uo);
+
   //get current logical location
   bwi_kr_execution::CurrentStateQuery csq;
   krClient.call(csq);
@@ -429,6 +454,8 @@ int main(int argc, char**argv) {
   krClient.waitForExistence();
   updateClient = n.serviceClient<bwi_kr_execution::UpdateFluents> ("update_fluents");
   updateClient.waitForExistence();
+  lnClient = n.serviceClient<bwi_msgs::UpdateObject> ("update_object");
+  lnClient.waitForExistence();
 
   MessageServer messageServer;
 
