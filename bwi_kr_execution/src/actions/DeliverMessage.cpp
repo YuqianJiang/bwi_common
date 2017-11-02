@@ -55,7 +55,7 @@ void DeliverMessage::run() {
   sound_req.command = sound_play::SoundRequest::PLAY_ONCE;
   std::stringstream ss;
   
-  ss << "Hi "<< person << " I have a response to your request. Do you want to read it now?\n";
+  ss << "I have a message for you. Do you want to read it now?\n";
   sound_req.arg = ss.str();
 
   message_pub.publish(sound_req);
@@ -76,9 +76,10 @@ void DeliverMessage::run() {
   uf.request.fluents.push_back(delivered);
 
   if (ask.getResponseIndex() == 0) {
-    string s = "This part is not implemented :(\n";
+    string s = "Hi\n";
     CallGUI message("message", CallGUI::DISPLAY, s, 5.0);
     message.run();
+    ros::Duration(5.0).sleep();
     bwi_kr_execution::AspFluent not_message;
     not_message.name = "-message";
     not_message.variables.push_back(person);

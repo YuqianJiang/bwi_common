@@ -18,7 +18,8 @@ add_message_files(
   FILES
     AnswerSet.msg
     AspFluent.msg
-    AspRule.msg)
+    AspRule.msg
+    HriMessage.msg)
 
 ## Generate services in the 'srv' folder
 add_service_files(
