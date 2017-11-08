@@ -18,7 +18,7 @@ inroom(P,R,I) :- searchroom(P,R,I), I>0, I=n-1.
 :- searchroom(P,R,I), not at(R,I-1), I>0, I=n-1.
 :- searchroom(P,R,I), not possiblelocation(P,R), person(P), room(R), I>0, I=n-1.
 %can only bother bwi people
-:- searchroom(P,R,I), not ingroup(P,bwi), person(P), I>0, I=n-1.
+%:- searchroom(P,R,I), not ingroup(P,bwi), hasoffice(P,R), person(P), I>0, I=n-1.
 
 %action delivermessage(P,M,I) deliver message M to person P
 messagedelivered(P,M,I) :- delivermessage(P,M,I), I>0, I=n-1.

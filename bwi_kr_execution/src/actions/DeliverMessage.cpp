@@ -54,12 +54,14 @@ void DeliverMessage::run() {
 
   std::stringstream ss;
   
-  ss << "Hi " << person <<"! I have a message for you from " << message.from << ".\n";
-  ss << "Do you want to read it now?\n";
+  ss << "Hi " << person << "! ";
 
   bwi_services::SpeakMessage message_srv;
   message_srv.request.message = ss.str();
   speakClient.call(message_srv);
+
+  ss << "I have a message for you from " << message.from << ".\n";
+  ss << "Do you want to read it now?\n";
 
   vector<string> options;
   options.push_back("Yes");
