@@ -34,10 +34,10 @@ struct IsFluentAt {
   }
 };
 
-struct IsFluentFind {
-  IsFluentFind(string name) : name(name) {}
+struct IsFluentFound {
+  IsFluentFound(string name) : name(name) {}
   bool operator()(const bwi_kr_execution::AspFluent& fluent) {
-    return fluent.name == "find" && fluent.variables[0] == name;
+    return fluent.name == "found" && fluent.variables[0] == name;
   }
 private:
   string name;
@@ -187,22 +187,24 @@ void displayMessage(string message, float timeout) {
 
 }
 
-bool checkFind(string person) {
+bool checkFound(string person) {
+  transform(person.begin(), person.end(), person.begin(), ::tolower);
   bwi_kr_execution::CurrentStateQuery csq;
   krClient.call(csq);
 
-  vector<bwi_kr_execution::AspFluent>::const_iterator findIt = 
+  vector<bwi_kr_execution::AspFluent>::const_iterator foundIt = 
                     find_if(csq.response.answer.fluents.begin(), 
                             csq.response.answer.fluents.end(), 
-                            IsFluentFind(person));
+                            IsFluentFound(person));
                     
-  if (findIt == csq.response.answer.fluents.end()) {
+  if (foundIt == csq.response.answer.fluents.end()) {
     return false;
   }
   return true;
 }
 
 bool checkBusy(string person) {
+  transform(person.begin(), person.end(), person.begin(), ::tolower);
   bwi_kr_execution::CurrentStateQuery csq;
   krClient.call(csq);
 
@@ -266,7 +268,7 @@ bool updateLocations(string target, string locations) {
 }
 
 bool validateTarget(string target) {
-  if (checkFind(target)) {      
+  if (checkFound(target)) {      
     if (checkBusy(target)) {
       string question = target + " is busy last time I checked. \n";
       question += "Do you want me to check again?";
@@ -449,12 +451,12 @@ bool deliverMessageHandler() {
       updateRequesterInfo(requester, id);
       sendDeliveryGoal(target, id);
 
-      if (!checkFind(target)) {
+      /*if (!checkFound(target)) {
         displayMessage("OK. I will look for " + target + " in ___ and deliver your message", 5.0);
       }
       else {
         displayMessage("OK. I will go to ___ and deliver your message", 5.0);
-      }
+      }*/
       
 
     }

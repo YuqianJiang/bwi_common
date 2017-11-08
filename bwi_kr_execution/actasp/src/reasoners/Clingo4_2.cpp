@@ -13,6 +13,8 @@
 #include <iostream>
 #include <limits>
 
+#include <ros/ros.h>
+
 #define CURRENT_STATE_FILE std::string("/tmp/current.asp")
 
 using namespace std;
@@ -567,12 +569,11 @@ std::string Clingo4_2::makeQuery(const std::string& query,
 //   if ( finalTimeStep > initialTimeStep ) //when max and initial are the same, we do not want max
     iterations << " -cimax=" << finalTimeStep;
 
-  commandLine << "clingo " << iterations.str() << " " << queryPath << " " << domainDir << "*.asp ";
+  commandLine << "clingo " << iterations.str() << " " << domainDir << "*.asp " << queryPath << " ";
   if(useCurrentState)
     commandLine<< (currentFilePath);
   
   commandLine << " > " << outputFilePath << " " << answerSetsNumber;
-
 
   if (!system(commandLine.str().c_str())) {
     //maybe do something here, or just kill the warning about the return value not being used.
