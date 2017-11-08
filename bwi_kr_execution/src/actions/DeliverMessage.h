@@ -6,6 +6,7 @@
 #include <ros/ros.h>
 
 #include <sound_play/SoundRequest.h>
+#include <bwi_kr_execution/HriMessage.h>
 
 #include <string>
 
@@ -32,8 +33,8 @@ private:
  std::vector<std::string> getParameters() const;
  std::string person;
  std::string message_id;
- static ros::Publisher message_pub;
- static bool pub_set;
+ bwi_kr_execution::HriMessage message;
+ 
  bool done;
  
 };

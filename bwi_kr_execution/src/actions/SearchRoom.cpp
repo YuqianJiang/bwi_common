@@ -8,6 +8,7 @@
 
 #include "bwi_kr_execution/CurrentStateQuery.h"
 #include <bwi_kr_execution/UpdateFluents.h>
+#include <bwi_services/SpeakMessage.h>
 
 #include <ros/ros.h>
 #include <sound_play/sound_play.h>
@@ -44,6 +45,8 @@ void SearchRoom::run() {
   //current state query
   ros::ServiceClient currentClient = n.serviceClient<bwi_kr_execution::CurrentStateQuery> ( "current_state_query" );
   currentClient.waitForExistence();
+  ros::ServiceClient speakClient = n.serviceClient<bwi_services::SpeakMessage> ( "speak_message" );
+  speakClient.waitForExistence();
 
   bwi_kr_execution::AspFluent atFluent;
   atFluent.name = "at";
@@ -62,7 +65,7 @@ void SearchRoom::run() {
 
   if (at) {
 
-    if (!wait_over && !waiting_speach && ask_pub.getNumSubscribers() == 0 ) {
+    /*if (!wait_over && !waiting_speach && ask_pub.getNumSubscribers() == 0 ) {
       waiting_speach = true;
       starting_wating = ros::Time::now();
       return;
@@ -71,18 +74,22 @@ void SearchRoom::run() {
       (ask_pub.getNumSubscribers() != 0 || (ros::Time::now() - starting_wating).toSec() > 1.)) {
       waiting_speach = false;
       wait_over = true;
-    }
+    }*/
 
 
     //speak
-    sound_play::SoundRequest sound_req;
+    /*sound_play::SoundRequest sound_req;
     sound_req.sound = sound_play::SoundRequest::SAY;
     sound_req.command = sound_play::SoundRequest::PLAY_ONCE;
+    ask_pub.publish(sound_req);*/
     std::stringstream ss;
     ss << "Is " << person << " in the room?";
-    sound_req.arg = ss.str();
+    //sound_req.arg = ss.str();
     
-    ask_pub.publish(sound_req);
+
+    bwi_services::SpeakMessage message_srv;
+    message_srv.request.message = ss.str();
+    speakClient.call(message_srv);
   }
 
   vector<string> options;
@@ -95,24 +102,17 @@ void SearchRoom::run() {
   int response = searchRoom.getResponseIndex();
 
   if (response >= 0) {
-    sound_play::SoundRequest sound_req;
+    /*sound_play::SoundRequest sound_req;
     sound_req.sound = sound_play::SoundRequest::SAY;
     sound_req.command = sound_play::SoundRequest::PLAY_ONCE;
-    if (response > 0) {  
-      sound_req.arg = "Thank you !";
-      CallGUI thank("thank", CallGUI::DISPLAY,  "Thank you!");
-      thank.run();
-    }
-    else {
-      std::stringstream ss;
-      ss << "Hi " << person << "!";
-      sound_req.arg = ss.str();
-      CallGUI hi("hi", CallGUI::DISPLAY,  ss.str());
-      hi.run();
-    }
-    ask_pub.publish(sound_req);
-  }else
-    failed = true;
+
+    sound_req.arg = "Thank you!";*/
+    CallGUI thank("thank", CallGUI::DISPLAY,  "Thank you!");
+    thank.run();
+    
+    //ask_pub.publish(sound_req);
+  }
+  
 
   ros::ServiceClient krClient = n.serviceClient<bwi_kr_execution::UpdateFluents> ( "update_fluents" );
   krClient.waitForExistence();

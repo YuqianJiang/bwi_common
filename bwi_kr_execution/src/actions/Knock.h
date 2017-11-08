@@ -31,8 +31,6 @@ private:
   
  std::vector<std::string> getParameters() const;
  std::string door;
- static ros::Publisher knock_pub;
- static bool pub_set;
  bool done;
  
 };
