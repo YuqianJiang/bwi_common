@@ -1,2 +1,4 @@
-int32 id
+string id
 string content
+string from
+string to

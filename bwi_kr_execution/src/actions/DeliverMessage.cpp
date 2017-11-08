@@ -8,9 +8,10 @@
 
 #include <bwi_kr_execution/UpdateFluents.h>
 #include <bwi_kr_execution/CurrentStateQuery.h>
+#include <bwi_kr_execution/GetHriMessage.h>
 
 #include <ros/ros.h>
-#include <sound_play/sound_play.h>
+#include <bwi_services/SpeakMessage.h>
 
 #include <string>
 #include <iostream>
@@ -25,9 +26,6 @@ DeliverMessage::DeliverMessage() :
             done(false){
             }
 
-ros::Publisher DeliverMessage::message_pub;
-bool DeliverMessage::pub_set(false);
-
 struct IsFluentAt {
   
   bool operator()(const bwi_kr_execution::AspFluent& fluent) {
@@ -39,26 +37,29 @@ struct IsFluentAt {
 void DeliverMessage::run() {
 
   ros::NodeHandle n;
-  if (!pub_set) { 
-    message_pub = n.advertise<sound_play::SoundRequest>("robotsound", 1000);
-    pub_set = true;
-  }
+  ros::ServiceClient speakClient = n.serviceClient<bwi_services::SpeakMessage> ( "speak_message" );
+  ros::ServiceClient updateClient = n.serviceClient<bwi_kr_execution::UpdateFluents> ("update_fluents");
+  ros::ServiceClient krClient = n.serviceClient<bwi_kr_execution::CurrentStateQuery> ("current_state_query");
+  ros::ServiceClient messageClient = n.serviceClient<bwi_kr_execution::GetHriMessage> ("look_up_message");
 
-  ros::ServiceClient krClient = n.serviceClient<bwi_kr_execution::UpdateFluents> ( "update_fluents" );
+  speakClient.waitForExistence();
+  updateClient.waitForExistence();
   krClient.waitForExistence();
+  messageClient.waitForExistence();
 
-//  if (message_pub.getNumSubscribers() == 0) return; //if the subscriber is not connected, sleep
+  bwi_kr_execution::GetHriMessage ghm;
+  ghm.request.message_id = message_id;
+  messageClient.call(ghm);
+  message = ghm.response.message;
 
-  //speak
-  sound_play::SoundRequest sound_req;
-  sound_req.sound = sound_play::SoundRequest::SAY;
-  sound_req.command = sound_play::SoundRequest::PLAY_ONCE;
   std::stringstream ss;
   
-  ss << "I have a message for you. Do you want to read it now?\n";
-  sound_req.arg = ss.str();
+  ss << "Hi " << person <<"! I have a message for you from " << message.from << ".\n";
+  ss << "Do you want to read it now?\n";
 
-  message_pub.publish(sound_req);
+  bwi_services::SpeakMessage message_srv;
+  message_srv.request.message = ss.str();
+  speakClient.call(message_srv);
 
   vector<string> options;
   options.push_back("Yes");
@@ -69,31 +70,31 @@ void DeliverMessage::run() {
 
   bwi_kr_execution::UpdateFluents uf;
 
-  bwi_kr_execution::AspFluent delivered;
-  delivered.name = ask.getResponseIndex() == 0 ? "messagedelivered" : "-messagedelivered";
-  delivered.variables.push_back(person);
-  delivered.variables.push_back(message_id);
-  uf.request.fluents.push_back(delivered);
-
   if (ask.getResponseIndex() == 0) {
-    string s = "Hi\n";
-    CallGUI message("message", CallGUI::DISPLAY, s, 5.0);
-    message.run();
-    ros::Duration(5.0).sleep();
-    bwi_kr_execution::AspFluent not_message;
-    not_message.name = "-message";
-    not_message.variables.push_back(person);
-    not_message.variables.push_back(message_id);
-    uf.request.fluents.push_back(not_message);
+    vector<string> options;
+    options.push_back("Got it");
+    CallGUI message_gui("message", CallGUI::CHOICE_QUESTION, message.content, 10.0, options);
+    message_gui.run();
+
+    bwi_kr_execution::AspFluent delivered;
+    delivered.name = "messagedelivered";
+    delivered.variables.push_back(person);
+    delivered.variables.push_back(message_id);
+    uf.request.fluents.push_back(delivered);
   }
   else if (ask.getResponseIndex() == 1) {
     string s = "OK. You can ask me again later.\n";
     CallGUI message("message", CallGUI::DISPLAY, s, 5.0);
     message.run();
+    ros::Duration(3.0).sleep();
+
+    bwi_kr_execution::AspFluent not_delivered;
+    not_delivered.name = "-messagedelivered";
+    not_delivered.variables.push_back(person);
+    not_delivered.variables.push_back(message_id);
+    uf.request.fluents.push_back(not_delivered);
   }
   else {
-    ros::ServiceClient krClient = n.serviceClient<bwi_kr_execution::CurrentStateQuery> ("current_state_query");
-    krClient.waitForExistence();
     bwi_kr_execution::CurrentStateQuery csq;
     krClient.call(csq);
     vector<bwi_kr_execution::AspFluent>::const_iterator atIt = 
@@ -111,7 +112,7 @@ void DeliverMessage::run() {
     }
   }
 
-  krClient.call(uf);
+  updateClient.call(uf);
 
   CallGUI clear("clear", CallGUI::DISPLAY,  "");
   clear.run();

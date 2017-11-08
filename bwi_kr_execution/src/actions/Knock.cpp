@@ -9,7 +9,7 @@
 #include <bwi_kr_execution/UpdateFluents.h>
 
 #include <ros/ros.h>
-#include <sound_play/sound_play.h>
+#include <bwi_services/SpeakMessage.h>
 
 #include <string>
 #include <iostream>
@@ -23,32 +23,22 @@ Knock::Knock() :
             done(false){
             }
 
-ros::Publisher Knock::knock_pub;
-bool Knock::pub_set(false);
 
 void Knock::run() {
 
   ros::NodeHandle n;
-  if (!pub_set) { 
-    knock_pub = n.advertise<sound_play::SoundRequest>("robotsound", 1000);
-    pub_set = true;
-  }
+  ros::ServiceClient speakClient = n.serviceClient<bwi_services::SpeakMessage> ( "speak_message" );
+  speakClient.waitForExistence();
 
-  ros::ServiceClient krClient = n.serviceClient<bwi_kr_execution::UpdateFluents> ( "update_fluents" );
-  krClient.waitForExistence();
+  ros::ServiceClient updateClient = n.serviceClient<bwi_kr_execution::UpdateFluents> ( "update_fluents" );
+  updateClient.waitForExistence();
 
-//  if (knock_pub.getNumSubscribers() == 0) return; //if the subscriber is not connected, sleep
-
-  //speak
-  sound_play::SoundRequest sound_req;
-  sound_req.sound = sound_play::SoundRequest::SAY;
-  sound_req.command = sound_play::SoundRequest::PLAY_ONCE;
   std::stringstream ss;
-  
   ss << "Can I come in?\n";
-  sound_req.arg = ss.str();
 
-  knock_pub.publish(sound_req);
+  bwi_services::SpeakMessage message_srv;
+  message_srv.request.message = ss.str();
+  speakClient.call(message_srv);
 
   vector<string> options;
   options.push_back("Yes");
@@ -64,7 +54,7 @@ void Knock::run() {
 
   fluent.name = knock.getResponseIndex() == 0 ? "accessgranted" : "-accessgranted";
   uf.request.fluents.push_back(fluent);
-  krClient.call(uf);
+  updateClient.call(uf);
 
   CallGUI clear("clear", CallGUI::DISPLAY,  "");
   clear.run();

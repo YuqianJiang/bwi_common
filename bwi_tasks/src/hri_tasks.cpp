@@ -1,11 +1,13 @@
 #include <bwi_msgs/QuestionDialog.h>
 #include <bwi_kr_execution/ExecutePlanAction.h>
+#include <bwi_msgs/LogicalNavigationAction.h>
 
 #include <actionlib/client/simple_action_client.h>
 #include <bwi_msgs/LogicalNavigationAction.h>
 #include <tf/transform_listener.h>
 #include <bwi_kr_execution/UpdateFluents.h>
 #include <bwi_kr_execution/CurrentStateQuery.h>
+#include <bwi_kr_execution/GetHriMessage.h>
 #include <bwi_msgs/UpdateObject.h>
 #include <bwi_kr_execution/HriMessage.h>
 
@@ -32,10 +34,10 @@ struct IsFluentAt {
   }
 };
 
-struct IsFluentFound {
-  IsFluentFound(string name) : name(name) {}
+struct IsFluentFind {
+  IsFluentFind(string name) : name(name) {}
   bool operator()(const bwi_kr_execution::AspFluent& fluent) {
-    return fluent.name == "found" && fluent.variables[0] == name;
+    return fluent.name == "find" && fluent.variables[0] == name;
   }
 private:
   string name;
@@ -68,37 +70,67 @@ public:
 
   MessageServer() : messages(), id_counter(0) {}
 
-  int addMessage(string content) {
+  static const bwi_kr_execution::HriMessage emptyMessage;
+
+  string addMessage(string content, string from, string to) {
     bwi_kr_execution::HriMessage message;
-    message.id = id_counter;
+    stringstream ss;
+    ss << "message_" << id_counter++;
+
+    message.id = ss.str();
     message.content = content;
-    messages.insert(make_pair<int,bwi_kr_execution::HriMessage> (id_counter, message));
-    return id_counter++;
+    message.from = from;
+    message.to = to;
+    messages.insert(make_pair<string,bwi_kr_execution::HriMessage> (message.id, message));
+    return message.id;
   }
 
   void addMessage(bwi_kr_execution::HriMessage message) {
-    messages.insert(make_pair<int,bwi_kr_execution::HriMessage> (message.id, message));
+    messages.insert(make_pair<string,bwi_kr_execution::HriMessage> (message.id, message));
   }
 
-  string getMessage(int id) {
-    if (messages.find(id) != messages.end()) {
-      return messages.find(id)->second.content;
+  bool lookUpMessage(bwi_kr_execution::GetHriMessage::Request  &req,
+                     bwi_kr_execution::GetHriMessage::Response &res) {
+    if (messages.find(req.message_id) != messages.end()) {
+      res.message = messages.find(req.message_id)->second;
     }
     else {
-      return "";
+      res.message = MessageServer::emptyMessage;
     }
-    
+
+    return true;
   }
 
 private:
-  map<int, bwi_kr_execution::HriMessage> messages;
+  map<string, bwi_kr_execution::HriMessage> messages;
   int id_counter;
 
 };
 
+const bwi_kr_execution::HriMessage MessageServer::emptyMessage;
 MessageServer messageServer;
 
-void goToRandomDoor();
+void goToDoor(string door) {  
+  bwi_kr_execution::ExecutePlanGoal goal;
+
+  bwi_kr_execution::AspRule rule;
+  bwi_kr_execution::AspFluent fluent;
+  fluent.name = "not facing";
+
+  fluent.variables.push_back(door);
+
+  rule.body.push_back(fluent);
+  goal.aspGoal.push_back(rule);
+
+  ROS_INFO("sending goal");
+  client->sendGoal(goal);
+}
+
+void goToRandomDoor() {
+  ROS_INFO("going to random door");
+  string door = doors[(rand() % doors.size())];
+  goToDoor(door);
+}
 
 bwi_msgs::QuestionDialog askTextQuestion(string message, float timeout) {
   bwi_msgs::QuestionDialog question;
@@ -155,16 +187,16 @@ void displayMessage(string message, float timeout) {
 
 }
 
-bool checkFound(string person) {
+bool checkFind(string person) {
   bwi_kr_execution::CurrentStateQuery csq;
   krClient.call(csq);
 
-  vector<bwi_kr_execution::AspFluent>::const_iterator foundIt = 
+  vector<bwi_kr_execution::AspFluent>::const_iterator findIt = 
                     find_if(csq.response.answer.fluents.begin(), 
                             csq.response.answer.fluents.end(), 
-                            IsFluentFound(person));
+                            IsFluentFind(person));
                     
-  if (foundIt == csq.response.answer.fluents.end()) {
+  if (findIt == csq.response.answer.fluents.end()) {
     return false;
   }
   return true;
@@ -234,12 +266,19 @@ bool updateLocations(string target, string locations) {
 }
 
 bool validateTarget(string target) {
-  if (checkFound(target)) {      
+  if (checkFind(target)) {      
     if (checkBusy(target)) {
+      string question = target + " is busy last time I checked. \n";
+      question += "Do you want me to check again?";
+
+      bwi_msgs::QuestionDialog checkAgain = askYesNoQuestion(question, 10.0);
+      if (checkAgain.response.index != 0) {
+        return false;
+      }
     }
+    return true;
   }
   else {
-    //ROS_INFO("not found");
     string question = "I do not know where " + target + " is. \n";
     question += "Do you want me to look for " + target + " ?";
 
@@ -274,6 +313,7 @@ bool validateTarget(string target) {
     }
     else if (lookFor.response.index == 1) {
       displayMessage("Okay. Have a nice day!", 10.0);
+      return false;
     }
   }
 }
@@ -352,25 +392,6 @@ bwi_msgs::QuestionDialog getInitialPage() {
 
 }
 
-void goToRandomDoor() {
-  ROS_INFO("going to random door");
-  string door = doors[(rand() % doors.size())];  
-
-  bwi_kr_execution::ExecutePlanGoal goal;
-
-  bwi_kr_execution::AspRule rule;
-  bwi_kr_execution::AspFluent fluent;
-  fluent.name = "not facing";
-
-  fluent.variables.push_back(door);
-
-  rule.body.push_back(fluent);
-  goal.aspGoal.push_back(rule);
-
-  ROS_INFO("sending goal");
-  client->sendGoal(goal);
-}
-
 void sendDeliveryGoal(string target, string id) {
   transform(target.begin(), target.end(), target.begin(), ::tolower);
   bwi_kr_execution::UpdateFluents uf;
@@ -418,20 +439,25 @@ bool deliverMessageHandler() {
 
       question = "OK. What is your message?";
       bwi_msgs::QuestionDialog getMessage = askTextQuestion(question, 20.0);
-      int message_id = messageServer.addMessage(getMessage.response.text);
-      stringstream ss;
-      ss << "message_" << message_id;
-      string id = ss.str();
 
       string question = "OK. What is your name?";
       bwi_msgs::QuestionDialog getUserName = askTextQuestion(question, 20.0);
       string requester = getUserName.response.text;
 
+      string id = messageServer.addMessage(getMessage.response.text, requester, target);
+
       updateRequesterInfo(requester, id);
       sendDeliveryGoal(target, id);
 
-    }
+      if (!checkFind(target)) {
+        displayMessage("OK. I will look for " + target + " in ___ and deliver your message", 5.0);
+      }
+      else {
+        displayMessage("OK. I will go to ___ and deliver your message", 5.0);
+      }
+      
 
+    }
   }
 
 }
@@ -445,8 +471,13 @@ int main(int argc, char**argv) {
   doors.push_back("d3_414a1");
   doors.push_back("d3_414a2");
 
+  ros::ServiceServer service = n.advertiseService("look_up_message", &MessageServer::lookUpMessage, &messageServer);
+
   client = new Client("action_executor/execute_plan", true);
   client->waitForServer();
+
+  actionlib::SimpleActionClient<bwi_msgs::LogicalNavigationAction> navClient("execute_logical_goal", true);;
+  navClient.waitForServer();
 
   guiClient = n.serviceClient<bwi_msgs::QuestionDialog>("/question_dialog");
   guiClient.waitForExistence();
@@ -457,7 +488,7 @@ int main(int argc, char**argv) {
   lnClient = n.serviceClient<bwi_msgs::UpdateObject> ("update_object");
   lnClient.waitForExistence();
 
-  MessageServer messageServer;
+  ros::Duration rate(0.5);
 
   while (ros::ok()) {
 
@@ -471,24 +502,19 @@ int main(int argc, char**argv) {
 
       if (guiClient.call(initial)) {
 
-        //if (isActive && !client->getState().isDone()) {
-        //  if (initial.response.index >= 0) {
-        //    ROS_INFO("Sorry! I'm busy now.");
-        //    //do plan explanation here
-        //  }
-        //}
-
-        if (initial.response.index == 0) {
-          goToRandomDoor();
-          isActive = false;
-        }
-        else if (initial.response.index == 1){
-          client->cancelAllGoals();        
-        }
-        else if (initial.response.index == 2) {
+        if (initial.response.index >= 0) {
           client->cancelAllGoals();
+          navClient.cancelAllGoals();
           isActive = true;
-          deliverMessageHandler();
+
+          if (initial.response.index == 0) {
+            goToRandomDoor();
+          }
+          else if (initial.response.index == 1){
+          }
+          else if (initial.response.index == 2) {
+            deliverMessageHandler();
+          }
         }
         else {
           if (client->getState().isDone()) {
@@ -497,9 +523,9 @@ int main(int argc, char**argv) {
             goToRandomDoor();
           }
         }
+
       }
-      else
-      {
+      else {
         ROS_ERROR("Failed to call service /question_dialog");
         ros::shutdown();
       }
@@ -515,6 +541,7 @@ int main(int argc, char**argv) {
       ROS_INFO("Succeeded!");
     }
 
+    rate.sleep();
     ros::spinOnce();
 
   }
