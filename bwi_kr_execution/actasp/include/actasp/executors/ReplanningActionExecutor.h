@@ -46,7 +46,7 @@ public:
 	~ReplanningActionExecutor();
 	
 
-private:
+protected:
 	std::vector<actasp::AspRule> goalRules;
 	bool isGoalReached;
 	bool hasFailed;
@@ -62,7 +62,7 @@ private:
   std::list<ExecutionObserver*> executionObservers;
   std::list<PlanningObserver*> planningObservers;
   
-  void computePlan();
+  virtual void computePlan();
 
 
 };

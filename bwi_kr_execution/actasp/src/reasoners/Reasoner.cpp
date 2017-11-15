@@ -98,7 +98,7 @@ void Reasoner::setCurrentState(const std::set<actasp::AspFluent>& newState) thro
 }
 
 AnswerSet Reasoner::computePlan(const std::vector<actasp::AspRule>& goal) const throw (std::logic_error){
-  list<AnswerSet> plans = clingo->minimalPlanQuery(goal,true,max_n,1);
+  list<AnswerSet> plans = clingo->minimalPlanQuery(goal,false,max_n,1);
   
   if(plans.empty())
     return AnswerSet();
@@ -208,7 +208,7 @@ AnswerSet Reasoner::computeOptimalPlan(const std::vector<actasp::AspRule>& goal,
   }
 
  
-  list<AnswerSet> firstAnswerSets = clingo->minimalPlanQuery(goal,true,max_n,0);
+  list<AnswerSet> firstAnswerSets = clingo->minimalPlanQuery(goal,filterActions,max_n,0);
 
   if (firstAnswerSets.empty())
     return AnswerSet();

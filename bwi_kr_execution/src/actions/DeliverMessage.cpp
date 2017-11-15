@@ -54,7 +54,7 @@ void DeliverMessage::run() {
 
   std::stringstream ss;
   
-  ss << "Hi " << person << "! ";
+  ss << "Hi " << message.to << "! ";
 
   bwi_services::SpeakMessage message_srv;
   message_srv.request.message = ss.str();

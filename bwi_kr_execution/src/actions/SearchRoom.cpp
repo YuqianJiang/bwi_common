@@ -24,23 +24,15 @@ SearchRoom::SearchRoom() :
             person(),
             room(),
             done(false),
-            failed(false),
-            waiting_speach(false),
-            wait_over(false){
+            failed(false){
             }
 
-ros::Publisher SearchRoom::ask_pub;
-bool SearchRoom::pub_set(false);
   
 void SearchRoom::run() {
 
   person[0] = toupper(person[0]);
 
   ros::NodeHandle n;
-  if (!pub_set) { 
-    ask_pub = n.advertise<sound_play::SoundRequest>("robotsound", 1000);
-    pub_set = true;
-  }
 
   //current state query
   ros::ServiceClient currentClient = n.serviceClient<bwi_kr_execution::CurrentStateQuery> ( "current_state_query" );
@@ -65,27 +57,8 @@ void SearchRoom::run() {
 
   if (at) {
 
-    /*if (!wait_over && !waiting_speach && ask_pub.getNumSubscribers() == 0 ) {
-      waiting_speach = true;
-      starting_wating = ros::Time::now();
-      return;
-    }
-    else if (!wait_over&& waiting_speach && 
-      (ask_pub.getNumSubscribers() != 0 || (ros::Time::now() - starting_wating).toSec() > 1.)) {
-      waiting_speach = false;
-      wait_over = true;
-    }*/
-
-
-    //speak
-    /*sound_play::SoundRequest sound_req;
-    sound_req.sound = sound_play::SoundRequest::SAY;
-    sound_req.command = sound_play::SoundRequest::PLAY_ONCE;
-    ask_pub.publish(sound_req);*/
     std::stringstream ss;
     ss << "Is " << person << " in the room?";
-    //sound_req.arg = ss.str();
-    
 
     bwi_services::SpeakMessage message_srv;
     message_srv.request.message = ss.str();
@@ -102,15 +75,8 @@ void SearchRoom::run() {
   int response = searchRoom.getResponseIndex();
 
   if (response >= 0) {
-    /*sound_play::SoundRequest sound_req;
-    sound_req.sound = sound_play::SoundRequest::SAY;
-    sound_req.command = sound_play::SoundRequest::PLAY_ONCE;
-
-    sound_req.arg = "Thank you!";*/
     CallGUI thank("thank", CallGUI::DISPLAY,  "Thank you!");
     thank.run();
-    
-    //ask_pub.publish(sound_req);
   }
   
 

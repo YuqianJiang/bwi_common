@@ -13,6 +13,7 @@
 
 #include <geometry_msgs/Pose.h>
 #include <std_srvs/Empty.h>
+#include <std_msgs/Bool.h>
 #include <ros/ros.h>
 #include <string>
 
@@ -25,6 +26,7 @@ ros::ServiceClient krClient;
 ros::ServiceClient updateClient;
 ros::ServiceClient lnClient;
 bool isActive;
+bool isDialogBusy;
 std::vector<string> doors;
 Client* client;
 
@@ -52,18 +54,6 @@ struct IsFluentBusy {
 private:
   string name;
 };
-
-//class Message {
-//public:
-//  Message(int id, string content) : id(id), content(content) {}
-//  int getId() {return id;}
-//  string getContent() {return content;}
-//
-//private:
-//  int id;
-//  string content;
-//
-//};
 
 class MessageServer {
 public:
@@ -110,6 +100,87 @@ private:
 const bwi_kr_execution::HriMessage MessageServer::emptyMessage;
 MessageServer messageServer;
 
+void setDialogState(const std_msgs::Bool::ConstPtr& msg) {
+  isDialogBusy = msg->data;
+
+  //ROS_INFO_STREAM(isDialogBusy);
+}
+
+bool askTextQuestion(string message, float timeout, string& response) {
+  bwi_msgs::QuestionDialog question;
+  question.request.type = question.request.TEXT_QUESTION;
+  question.request.message = message;
+  question.request.timeout = timeout;
+
+  if (guiClient.call(question)) {
+    if (question.response.index == bwi_msgs::QuestionDialogRequest::TEXT_RESPONSE) {
+      response = question.response.text;
+      return true;
+    }
+    else {
+      ROS_INFO("No text response detected");
+      return false;
+    }
+  }
+  else {
+    ROS_ERROR("Failed to call service /question_dialog");
+    ros::shutdown();
+  }
+
+}
+
+bool askYesNoQuestion(string message, float timeout, int& index) {
+  bwi_msgs::QuestionDialog question;
+  question.request.type = question.request.CHOICE_QUESTION;
+  question.request.message = message;
+  question.request.options.push_back("Yes");
+  question.request.options.push_back("No");
+  question.request.timeout = timeout;
+
+  if (guiClient.call(question)) {
+    if (question.response.index == bwi_msgs::QuestionDialogRequest::TIMED_OUT) {
+      ROS_INFO("No response detected");
+      return false;
+    }
+    else {
+      index = question.response.index;
+      return true;
+    }
+  }
+  else {
+    ROS_ERROR("Failed to call service /question_dialog");
+    return false;
+  }
+}
+
+void displayMessage(string message, float timeout, bool confirm = false) {
+  bwi_msgs::QuestionDialog question;
+
+  if (!confirm) {
+    question.request.type = question.request.DISPLAY;
+    question.request.message = message;
+    question.request.timeout = timeout;
+  }
+  else {
+    vector<string> options;
+    options.push_back("Got it");
+    question.request.type = question.request.CHOICE_QUESTION;
+    question.request.message = message;
+    question.request.options = options;
+    question.request.timeout = timeout;
+  }
+
+  if (!guiClient.call(question)) {
+    ROS_ERROR("Failed to call service /question_dialog");
+  }
+}
+
+void planExplanationCb(const bwi_kr_execution::ExecutePlanFeedbackConstPtr& feedback) {
+  ROS_INFO_STREAM(feedback->plan_explanation);
+  displayMessage(feedback->plan_explanation, 0.0, true);
+  //ros::Duration(5.0).sleep();
+}
+
 void goToDoor(string door) {  
   bwi_kr_execution::ExecutePlanGoal goal;
 
@@ -123,68 +194,13 @@ void goToDoor(string door) {
   goal.aspGoal.push_back(rule);
 
   ROS_INFO("sending goal");
-  client->sendGoal(goal);
+  client->sendGoal(goal, Client::SimpleDoneCallback(), Client::SimpleActiveCallback(), &planExplanationCb);
 }
 
 void goToRandomDoor() {
-  ROS_INFO("going to random door");
+  displayMessage("Going to random door", 5.0);
   string door = doors[(rand() % doors.size())];
   goToDoor(door);
-}
-
-bwi_msgs::QuestionDialog askTextQuestion(string message, float timeout) {
-  bwi_msgs::QuestionDialog question;
-  question.request.type = question.request.TEXT_QUESTION;
-  question.request.message = message;
-  question.request.timeout = timeout;
-
-  if (guiClient.call(question)) {
-    if (question.response.index != bwi_msgs::QuestionDialogRequest::TEXT_RESPONSE) {
-      ROS_INFO("No text response detected, going for a random walk");
-      goToRandomDoor();
-    }
-  }
-  else {
-    ROS_ERROR("Failed to call service /question_dialog");
-    ros::shutdown();
-  }
-
-  return question;
-}
-
-bwi_msgs::QuestionDialog askYesNoQuestion(string message, float timeout) {
-  bwi_msgs::QuestionDialog question;
-  question.request.type = question.request.CHOICE_QUESTION;
-  question.request.message = message;
-  question.request.options.push_back("Yes");
-  question.request.options.push_back("No");
-  question.request.timeout = timeout;
-
-  if (guiClient.call(question)) {
-    if (question.response.index < 0) {
-      ROS_INFO("No text response detected, going for a random walk");
-      goToRandomDoor();
-    }
-  }
-  else {
-    ROS_ERROR("Failed to call service /question_dialog");
-    ros::shutdown();
-  }
-
-  return question;
-}
-
-void displayMessage(string message, float timeout) {
-  bwi_msgs::QuestionDialog question;
-  question.request.type = question.request.DISPLAY;
-  question.request.message = message;
-  question.request.timeout = timeout;
-
-  if (!guiClient.call(question)) {
-    ROS_ERROR("Failed to call service /question_dialog");
-    ros::shutdown();
-  }
-
 }
 
 bool checkFound(string person) {
@@ -273,8 +289,9 @@ bool validateTarget(string target) {
       string question = target + " is busy last time I checked. \n";
       question += "Do you want me to check again?";
 
-      bwi_msgs::QuestionDialog checkAgain = askYesNoQuestion(question, 10.0);
-      if (checkAgain.response.index != 0) {
+      int checkAgain;
+
+      if ((!askYesNoQuestion(question, 10.0, checkAgain)) || (checkAgain != 0)) {
         return false;
       }
     }
@@ -284,39 +301,43 @@ bool validateTarget(string target) {
     string question = "I do not know where " + target + " is. \n";
     question += "Do you want me to look for " + target + " ?";
 
-    bwi_msgs::QuestionDialog lookFor = askYesNoQuestion(question, 10.0);
+    int lookFor;
 
-    if (lookFor.response.index == 0) {
-      ROS_INFO_STREAM("I will look for " + target);
+    if (!askYesNoQuestion(question, 10.0, lookFor)) return false;
 
-      if (updateLookingFor(target)) {
-        return true;
-      }
-      else {
-        // target is not modeled in the domain. ask for user help
-        string question = "Can you suggest possible location(s) for " + target + "? \n";
-        bwi_msgs::QuestionDialog canSuggest = askYesNoQuestion(question, 10.0);
-
-        while (canSuggest.response.index == 0) {
-          question = "syntax: l[floor]_[room number];\n";
-          question += "e.g. l3_414a; l3_414b";
-
-          bwi_msgs::QuestionDialog locations = askTextQuestion(question, 20.0);
-          if (updateLocations(target, locations.response.text)) {
-            return true;
-          }
-
-          question = "I do not recognize the location(s). Do you want to suggest other location(s) for " + target + "? \n";
-          canSuggest = askYesNoQuestion(question, 10.0);
-        }
-        
-        
-      }
-    }
-    else if (lookFor.response.index == 1) {
-      displayMessage("Okay. Have a nice day!", 10.0);
+    if (lookFor == 1) {
+      displayMessage("Okay. Have a nice day!", 5.0);
       return false;
     }
+
+    ROS_INFO_STREAM("I will look for " + target);
+
+    if (updateLookingFor(target)) {
+      return true;
+    }
+
+    // target is not modeled in the domain. ask for user help
+    question = "Can you suggest possible location(s) for " + target + "? \n";
+
+    int canSuggest; 
+    if (!askYesNoQuestion(question, 10.0, canSuggest)) return false;
+
+    while (canSuggest == 0) {
+      question = "syntax: l[floor]_[room number];\n";
+      question += "e.g. l3_414a; l3_414b";
+
+      string locations;
+      if (!askTextQuestion(question, 20.0, locations)) return false;
+
+      //TODO: test this
+      if (updateLocations(target, locations)) {
+        return true;
+      }
+
+      question = "I do not recognize the location(s). Do you want to suggest other location(s) for " + target + "? \n";
+      if (!askYesNoQuestion(question, 10.0, canSuggest)) return false;
+    } 
+    
   }
 }
 
@@ -343,7 +364,7 @@ bool updateRequesterInfo(string requester, string message_id) {
 
   //add object to map
   bwi_msgs::UpdateObject uo;
-  uo.request.object_name = requester+"_marker";
+  uo.request.object_name = "location_of_" + requester;
   uo.request.pose = msg;
   lnClient.call(uo);
 
@@ -370,7 +391,7 @@ bool updateRequesterInfo(string requester, string message_id) {
   bwi_kr_execution::AspFluent locationmarker;
   locationmarker.name = "locationmarker";
   locationmarker.variables.push_back(requester);
-  locationmarker.variables.push_back(requester+"_marker");
+  locationmarker.variables.push_back("location_of_" + requester);
   uf.request.fluents.push_back(locationmarker);
 
   updateClient.call(uf);
@@ -426,41 +447,38 @@ void sendDeliveryGoal(string target, string id) {
   goal.aspGoal.push_back(delivered_rule);
 
   ROS_INFO("sending goal");
-  client->sendGoal(goal);
+  client->sendGoal(goal, Client::SimpleDoneCallback(), Client::SimpleActiveCallback(), &planExplanationCb);
 }
 
 
 bool deliverMessageHandler() {
   string question = "Who are you sending a message to?";
-  bwi_msgs::QuestionDialog getTarget = askTextQuestion(question, 20.0);
+  string target;
 
-  if (getTarget.response.index == bwi_msgs::QuestionDialogRequest::TEXT_RESPONSE) {
-    string target = getTarget.response.text;
-    if (validateTarget(target)) {
-      ROS_INFO("Target validated");
-
-      question = "OK. What is your message?";
-      bwi_msgs::QuestionDialog getMessage = askTextQuestion(question, 20.0);
-
-      string question = "OK. What is your name?";
-      bwi_msgs::QuestionDialog getUserName = askTextQuestion(question, 20.0);
-      string requester = getUserName.response.text;
-
-      string id = messageServer.addMessage(getMessage.response.text, requester, target);
-
-      updateRequesterInfo(requester, id);
-      sendDeliveryGoal(target, id);
-
-      /*if (!checkFound(target)) {
-        displayMessage("OK. I will look for " + target + " in ___ and deliver your message", 5.0);
-      }
-      else {
-        displayMessage("OK. I will go to ___ and deliver your message", 5.0);
-      }*/
-      
-
-    }
+  if (!askTextQuestion(question, 20.0, target)) {
+    return false;
   }
+
+  if (!validateTarget(target)) {
+    return false;
+  }
+
+  ROS_INFO("Target validated");
+
+  question = "OK. What is your message?";
+  string content;
+
+  if (!askTextQuestion(question, 20.0, content)) return false;
+
+  question = "OK. What is your name?";
+  string requester;
+  if (!askTextQuestion(question, 20.0, requester)) return false;
+
+  string id = messageServer.addMessage(content, requester, target);
+  isActive = true;
+
+  updateRequesterInfo(requester, id);
+  sendDeliveryGoal(target, id);
 
 }
 
@@ -490,33 +508,53 @@ int main(int argc, char**argv) {
   lnClient = n.serviceClient<bwi_msgs::UpdateObject> ("update_object");
   lnClient.waitForExistence();
 
+  ros::Subscriber dialogListner = n.subscribe("is_dialog_busy", 10, setDialogState);
+
   ros::Duration rate(0.5);
 
   while (ros::ok()) {
 
     if (isActive && client->getState().isDone()) {
       isActive = false;
+      if (client->getState() == actionlib::SimpleClientGoalState::ABORTED) {
+        ROS_INFO("Aborted");
+      } else if (client->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
+        ROS_INFO("Preempted");
+      }
+      else if (client->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
+        ROS_INFO("Succeeded!");
+      }
     }
 
-    bwi_msgs::QuestionDialog initial = getInitialPage();
 
-    if (!isActive) {
+    if (!isDialogBusy) {
 
+      bwi_msgs::QuestionDialog initial = getInitialPage();
       if (guiClient.call(initial)) {
 
         if (initial.response.index >= 0) {
-          client->cancelAllGoals();
-          navClient.cancelAllGoals();
-          isActive = true;
 
-          if (initial.response.index == 0) {
-            goToRandomDoor();
+          if (isActive) {
+            displayMessage("Sorry I'm busy!", 5.0);
+            ros::Duration(5.0).sleep();
           }
-          else if (initial.response.index == 1){
+          else {
+            client->cancelAllGoals();
+            navClient.cancelAllGoals();
+
+            if (initial.response.index == 0) {
+              goToRandomDoor();
+              isActive = true;
+            }
+            else if (initial.response.index == 1){
+            }
+            else if (initial.response.index == 2) {
+              deliverMessageHandler();
+            }
+
           }
-          else if (initial.response.index == 2) {
-            deliverMessageHandler();
-          }
+
+          
         }
         else {
           if (client->getState().isDone()) {
@@ -532,15 +570,6 @@ int main(int argc, char**argv) {
         ros::shutdown();
       }
 
-    }
-
-    if (client->getState() == actionlib::SimpleClientGoalState::ABORTED) {
-      ROS_INFO("Aborted");
-    } else if (client->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
-      ROS_INFO("Preempted");
-    }
-    else if (client->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
-      ROS_INFO("Succeeded!");
     }
 
     rate.sleep();

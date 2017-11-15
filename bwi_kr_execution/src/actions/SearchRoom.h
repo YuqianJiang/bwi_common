@@ -35,10 +35,7 @@ private:
  std::vector<std::string> getParameters() const;
  std::string person;
  std::string room;
- static ros::Publisher ask_pub;
- static bool pub_set;
- bool done,failed,waiting_speach,wait_over;
- ros::Time starting_wating;
+ bool done,failed;
  
 };
 
