@@ -34,7 +34,7 @@ messagedelivered(P,M,I) :- delivermessage(P,M,I), I>0, I=n-1.
 busy(P,I) :- inroom(P,R,I), -accessgranted(D,I), hasdoor(R,D), hasoffice(P,R).
 
 %-found in a room if all doors are closed
--found(P,R,I) :- {not -open(D,I) : not badDoor(D), not -accessgranted(D,I), hasdoor(R,D)}0, not busy(P,I), possiblelocation(P,R), I>0, I=n-1.
+-found(P,R,I) :- {not -open(D,I) : not badDoor(D), not -accessgranted(D,I), hasdoor(R,D)}0, hasdoor(R,D1), not busy(P,I), possiblelocation(P,R), I>0, I=n-1.
 -found(P,R,I) :- -inroom(P,R,I), I>0, I=n-1.
 %found if inroom is true for a room
 found(P,I) :- inroom(P,R,I), room(R), I>0, I=n-1.
@@ -71,7 +71,7 @@ inroom(P,R,I) :- inroom(P,R,I-1), not -inroom(P,R,I), I>0, I=n-1.
 %accessgranted(D,I) :- accessgranted(D,I-1), not -accessgranted(D,I), I>0, I=n-1.
 -accessgranted(D,I) :- -accessgranted(D,I-1), not accessgranted(D,I), not -knowclosed(D,I), I>0, I=n-1.
 
-%message is inertial; update -message after successful deliver
+%message is inertial; maybe update -message after successful deliver
 message(P,M,I) :- message(P,M,I-1), not -message(P,M,I), I>0, I=n-1.
 
 %location marker is inertial

@@ -75,11 +75,16 @@ target_link_libraries(kractions actasp)
 set(spexec_SRC)
 set(anyexec_SRC)
 set(lexec_SRC)
+set(xpexec_SRC)
 set(krreasoner_SRC)
 
 add_subdirectory(src)
 add_executable(single_plan_executor_node ${spexec_SRC})
 target_link_libraries(single_plan_executor_node
+  ${catkin_LIBRARIES} actasp kractions)
+
+add_executable(explain_plan_executor_node ${xpexec_SRC})
+target_link_libraries(explain_plan_executor_node
   ${catkin_LIBRARIES} actasp kractions)
 
 add_executable(any_plan_executor_node ${anyexec_SRC})
