@@ -514,19 +514,6 @@ int main(int argc, char**argv) {
 
   while (ros::ok()) {
 
-    if (isActive && client->getState().isDone()) {
-      isActive = false;
-      if (client->getState() == actionlib::SimpleClientGoalState::ABORTED) {
-        ROS_INFO("Aborted");
-      } else if (client->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
-        ROS_INFO("Preempted");
-      }
-      else if (client->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
-        ROS_INFO("Succeeded!");
-      }
-    }
-
-
     if (!isDialogBusy) {
 
       bwi_msgs::QuestionDialog initial = getInitialPage();
@@ -570,6 +557,18 @@ int main(int argc, char**argv) {
         ros::shutdown();
       }
 
+    }
+
+    if (isActive && client->getState().isDone()) {
+      isActive = false;
+      if (client->getState() == actionlib::SimpleClientGoalState::ABORTED) {
+        ROS_INFO("Aborted");
+      } else if (client->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
+        ROS_INFO("Preempted");
+      }
+      else if (client->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
+        ROS_INFO("Succeeded!");
+      }
     }
 
     rate.sleep();

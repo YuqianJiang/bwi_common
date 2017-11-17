@@ -59,7 +59,7 @@ string fluentToText(const AspFluent& fluent, bool isTrue) {
 
   if (fluent.getName() == "accessgranted") 
     if (isTrue) {return "check that I'm allowed to go through " + fluent.getParameters()[0];}
-    else {return "check that I'm not allowed to go through " + fluent.getParameters()[0];}
+    else {return "know that I'm not allowed to go through " + fluent.getParameters()[0];}
 
   if (fluent.getName() == "found") 
     if (isTrue) {return "find " + fluent.getParameters()[0];}
@@ -124,21 +124,16 @@ public:
     for (int i = 0; i < changes.size(); ++i) {
       for (vector<pair<AspFluent, bool> >::iterator it1 = changes[i].begin(); it1 != changes[i].end(); ++it1) {
 
-        for (vector<pair<AspFluent, bool> >::iterator it2 = it1 + 1; it2 != changes[i].end(); ++it2) {
-            explanations << it1->first.toString() << "=" << (it1->second ? "true" : "false") << " ";
-            explanations << it2->first.toString() << "=" << (it2->second ? "true" : "false") << "\n";
-            feedback << fluentToText(it1->first, it1->second) << ", ";
-            feedback << fluentToText(it2->first, it2->second) << "\n";
-            count++;
-        }
-
-        for (int j = i + 1; j < changes.size(); ++j) {
+        for (int j = i; j < changes.size(); ++j) {
           for (vector<pair<AspFluent, bool> >::iterator it2 = changes[j].begin(); it2 != changes[j].end(); ++it2) {
-            explanations << it1->first.toString() << "=" << (it1->second ? "true" : "false") << " ";
-            explanations << it2->first.toString() << "=" << (it2->second ? "true" : "false") << "\n";
-            feedback << fluentToText(it1->first, it1->second) << ", ";
-            feedback << fluentToText(it2->first, it2->second) << "\n";
-            count++;
+            if (it1 != it2) {
+              explanations << it1->first.toString() << "=" << (it1->second ? "true" : "false") << " ";
+              explanations << it2->first.toString() << "=" << (it2->second ? "true" : "false") << "\n";
+              feedback << fluentToText(it1->first, it1->second) << ", ";
+              feedback << fluentToText(it2->first, it2->second) << "\n";
+              count++;
+            }
+            
           }
         }
 
