@@ -34,7 +34,8 @@ messagedelivered(P,M,I) :- delivermessage(P,M,I), I>0, I=n-1.
 busy(P,I) :- inroom(P,R,I), -accessgranted(D,I), hasdoor(R,D), hasoffice(P,R).
 
 %-found in a room if all doors are closed
--found(P,R,I) :- {not -open(D,I) : not badDoor(D), not -accessgranted(D,I), hasdoor(R,D)}0, hasdoor(R,D1), not busy(P,I), possiblelocation(P,R), I>0, I=n-1.
+-alldoorsclosed(R,I) :- not -open(D,I), not badDoor(D), not -accessgranted(D,I), hasdoor(R,D), I>0, I=n-1.
+-found(P,R,I) :- not -alldoorsclosed(R,I), hasdoor(R,D1), not busy(P,I), not at(R,I), possiblelocation(P,R), I>0, I=n-1.
 -found(P,R,I) :- -inroom(P,R,I), I>0, I=n-1.
 %found if inroom is true for a room
 found(P,I) :- inroom(P,R,I), room(R), I>0, I=n-1.
