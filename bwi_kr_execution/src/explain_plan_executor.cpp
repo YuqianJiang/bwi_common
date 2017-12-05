@@ -89,7 +89,6 @@ public:
 private:
   Server* server;
   PlanExplainer* explainer;
-  
 };
 
 void executePlan(const bwi_kr_execution::ExecutePlanGoalConstPtr& plan, Server* as) {
@@ -205,6 +204,7 @@ int main(int argc, char**argv) {
   boost::filesystem::create_directories(queryDirectory);
 
   FilteringQueryGenerator *generator = new Clingo4_2("n",queryDirectory,domainDirectory,actionMapToSet(ActionFactory::actions()),PLANNER_TIMEOUT);
+
   reasoner = new RemoteReasoner(generator, MAX_N,actionMapToSet(ActionFactory::actions()));
   StaticFacts::retrieveStaticFacts(reasoner, domainDirectory);
 
