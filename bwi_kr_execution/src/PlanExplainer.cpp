@@ -15,7 +15,7 @@ namespace bwi_krexec {
 struct ExplanationState{
 
   ExplanationState(const vector<Predicate>& predicates, 
-                  const map<Predicate, int>& predicateMap) : 
+                  const map<Predicate, int, PredicateComp>& predicateMap) : 
   predicates(predicates), 
   features(predicateMap.size()) {
 
@@ -29,6 +29,7 @@ struct ExplanationState{
   string toString() {
     stringstream ss;
     copy(predicates.begin(),predicates.end(),ostream_iterator<string>(ss," "));
+    copy(next.begin(),next.end(),ostream_iterator<int>(ss," "));
     return ss.str();
   }
 
@@ -47,41 +48,7 @@ struct IsPredicateExplained {
   Predicate predicate;
 };
 
-string fluentToText(const AspFluent& fluent, bool isTrue) {
-  if (fluent.getName() == "at") 
-    if (isTrue) {return "go to " + fluent.getParameters()[0];}
-    else {return "leave " + fluent.getParameters()[0];}
-
-  if (fluent.getName() == "facing") 
-    if (isTrue) {return "turn to " + fluent.getParameters()[0];}
-    else {return "turn away from " + fluent.getParameters()[0];}
-
-  if (fluent.getName() == "beside") 
-    if (isTrue) {return "approach " + fluent.getParameters()[0];}
-    else {return "get away from " + fluent.getParameters()[0];}
-
-  if (fluent.getName() == "open") 
-    if (isTrue) {return "open " + fluent.getParameters()[0];}
-    else {return "check that " + fluent.getParameters()[0] + " is closed";}
-
-  if (fluent.getName() == "accessgranted") 
-    if (isTrue) {return "check that I'm allowed to go through " + fluent.getParameters()[0];}
-    else {return "know that I'm not allowed to go through " + fluent.getParameters()[0];}
-
-  if (fluent.getName() == "found") 
-    if (isTrue) {return "find " + fluent.getParameters()[0];}
-    else {return "not know the location of " + fluent.getParameters()[0];}
-
-  if (fluent.getName() == "inroom") 
-    if (isTrue) {return "check that " + fluent.getParameters()[0] + " is in room " + fluent.getParameters()[1];}
-    else {return "check that " + fluent.getParameters()[0] + " is not in room " + fluent.getParameters()[1];}
-
-  if (fluent.getName() == "messagedelivered") 
-    if (isTrue) {return "deliver a message to " + fluent.getParameters()[0];}
-    else {return "not deliver a message to " + fluent.getParameters()[0];}
-
-  return "undefined predicate " + fluent.getName();
-}
+string fluent2Text(const AspFluent& fluent, bool isTrue);
 
 void PlanExplainer::setPlan(const AnswerSet& newFluents) {
 
@@ -96,15 +63,12 @@ void PlanExplainer::setPlan(const AnswerSet& newFluents) {
     //copy(changesAtTime.begin(),changesAtTime.end(),ostream_iterator<string>(predicatesStream," "));
     //ROS_INFO_STREAM("changes at " << t << ": " << predicatesStream.str());
   }
+
+  plan.push_back(Predicate(AspFluent("terminate", vector<string>(), newFluents.maxTimeStep()+1), true));
   
   liftPlan(plan);
 
-  stringstream predicatesStream;
-  predicatesStream << "plan changes: ";
-  transform(plan.begin(),plan.end(),ostream_iterator<string>(predicatesStream," "), boost::bind(&Predicate::toString, _1, true));
-  ROS_INFO_STREAM(predicatesStream.str());
-
-  buildStateSpace(plan);
+  //buildStateSpace(plan);
 }
 
 string PlanExplainer::getAllPairs() {
@@ -116,8 +80,8 @@ string PlanExplainer::getAllPairs() {
   for (vector<Predicate>::iterator it1 = plan.begin(); it1 != plan.end(); ++it1) {
 
     for (vector<Predicate>::iterator it2 = it1; it2 != plan.end(); ++it2) {
-      feedback << fluentToText(it1->grounded, it1->isTrue) << ", ";
-      feedback << fluentToText(it2->grounded, it2->isTrue) << "\n";
+      feedback << fluent2Text(it1->grounded, it1->isTrue) << ", ";
+      feedback << fluent2Text(it2->grounded, it2->isTrue) << "\n";
       count++;
     }
   }
@@ -140,18 +104,76 @@ string PlanExplainer::getRandomExplanation(const int length) {
 
   while ((count < length) && ((length-count) < (plan.size()-current_i))) {
     i = rand() % ((plan.size()-current_i) - (length-count)) + current_i + 1;
-    explanation_ss << fluentToText(plan[i].grounded, plan[i].isTrue) << ", ";
+    explanation_ss << fluent2Text(plan[i].grounded, plan[i].isTrue) << ", ";
     current_i = i;
     count++;
   }
   
   for (; (count < length) && (i < plan.size()); ++i) {
-    explanation_ss << fluentToText(plan[i].grounded, plan[i].isTrue) << ", ";
+    explanation_ss << fluent2Text(plan[i].grounded, plan[i].isTrue) << ", ";
   }
 
   string explanation = explanation_ss.str();
   return explanation.substr(0, explanation.size()-2) + ".\n";
 
+}
+
+string PlanExplainer::getRandomExplanation() {
+  srand (time(NULL));
+
+  if (plan.size() == 0) return "";
+
+  stringstream explanation_ss;
+
+  vector<ExplanationState> mdp = buildStateSpace(plan);
+  vector<vector<double> > policy = calcMaxEntPolicy(mdp, 10);
+
+  int state = 0;
+  int length = 0;
+  while ((policy[state].size() != 0) && (length < 4)) {
+    int nextStateIndex = rand() % policy[state].size();
+    
+    vector<int> nextStates = mdp[state].next;
+    Predicate chosenPredicate = mdp[state].predicates[nextStateIndex];
+
+    if (chosenPredicate.fluent.getName() != "terminate")
+      explanation_ss << fluent2Text(chosenPredicate.grounded, chosenPredicate.isTrue) << ", ";
+    
+    state = nextStates[nextStateIndex];
+    ++length;
+  }
+
+  string explanation = explanation_ss.str();
+  explanation = explanation.substr(0, explanation.size()-2) + ".\n";
+  ROS_INFO_STREAM(explanation);
+  return explanation;
+
+}
+
+string PlanExplainer::getLearnedExplanation() {
+  if (plan.size() == 0) return "";
+  
+  stringstream explanation_ss;
+
+  vector<ExplanationState> mdp = buildStateSpace(plan);
+  vector<vector<double> > policy = calcMaxEntPolicy(mdp, 10);
+
+  int state = 0;
+  while (policy[state].size() != 0) {
+    int nextStateIndex = distance(policy[state].begin(), max_element(policy[state].begin(), policy[state].end()));
+    
+    vector<int> nextStates = mdp[state].next;
+    Predicate chosenPredicate = mdp[state].predicates[nextStateIndex];
+
+    if (chosenPredicate.fluent.getName() != "terminate")
+      explanation_ss << fluent2Text(chosenPredicate.grounded, chosenPredicate.isTrue) << ", ";
+    state = nextStates[nextStateIndex];
+  }
+
+  string explanation = explanation_ss.str();
+  explanation = explanation.substr(0, explanation.size()-2) + ".\n";
+  ROS_INFO_STREAM(explanation);
+  return explanation;
 }
 
 vector<Predicate> PlanExplainer::getFluentDifference(const set<AspFluent>& set1, 
@@ -220,7 +242,6 @@ vector<ExplanationState> PlanExplainer::buildStateSpace(const vector<Predicate>&
   for (int i = 0; i < states.size(); ++i) {
     ExplanationState state = states[i];
 
-    //ROS_INFO_STREAM("state " << i << ": " << state.toString());
 
     for (vector<Predicate>::iterator predIt = state.predicates.begin(); predIt != state.predicates.end(); ++predIt) {
       
@@ -237,17 +258,12 @@ vector<ExplanationState> PlanExplainer::buildStateSpace(const vector<Predicate>&
         states.push_back(ExplanationState(unexplained, predicateMap));
       }
 
-      state.next.push_back(index);
+      states[i].next.push_back(index);
       states[index].previous.push_back(i);
     }
-  }
 
-  ExplanationState terminal(vector<Predicate>(), predicateMap);
-  for (int i = 0; i < states.size(); ++i) {
-    states[i].next.push_back(states.size());
-    terminal.previous.push_back(i);
+    //ROS_INFO_STREAM("state " << i << ": " << states[i].toString());
   }
-  states.push_back(terminal);
 
   return states;
 }
@@ -273,15 +289,21 @@ void PlanExplainer::liftPlan(std::vector<Predicate>& predicates) {
   for (vector<Predicate>::iterator it = predicates.begin(); it != predicates.end(); ++it) {
     it->lift(entityGeneralizer);
   }
+
+  stringstream predicatesStream;
+  predicatesStream << "plan changes: ";
+  transform(predicates.begin(),predicates.end(),ostream_iterator<string>(predicatesStream," "), boost::bind(&Predicate::toString, _1, true));
+  ROS_INFO_STREAM(predicatesStream.str());
 }
 
 vector<vector<double> > PlanExplainer::calcMaxEntPolicy(const vector<ExplanationState>& mdp, 
-                                        const vector<double>& feature_expectation,
                                         const int horizon) {
   int n_states = mdp.size();
   vector<vector<double> > z_a;
   vector<double> z_s(n_states);
-  z_s[n_states-1] = 1;
+  int terminal = *(mdp[0].next.rbegin());
+
+  z_s[terminal] = 1;
 
   for (int i = 0; i < n_states; ++i) {
     z_a.push_back(vector<double>(mdp[i].next.size()));
@@ -290,22 +312,34 @@ vector<vector<double> > PlanExplainer::calcMaxEntPolicy(const vector<Explanation
   for (int n = 0; n < horizon; ++n) {
 
     for (int i = 0; i < n_states; ++i) {
+
+      double dot = inner_product(weights.begin(), weights.end(), mdp[i].features.begin(), 0.0);
+
       for (int j = 0; j < mdp[i].next.size(); ++j) {
         //z_a[i][j] += trans_mat[i,j,k]*np.exp(np.dot(r_weights, state_features[i]))*z_s[k]
-        double dot = inner_product(weights.begin(), weights.end(), mdp[i].features.begin(), 0.0);
         z_a[i][j] = exp(dot) * z_s[mdp[i].next[j]];
       }
     }
 
     for (int i = 0; i < n_states; ++i) {
-      z_s[i] = accumulate(z_a[i].begin(), z_a[i].end(), 0);
+      z_s[i] = accumulate(z_a[i].begin(), z_a[i].end(), 0.0);
     }
 
-    z_s[n_states-1]++;
+    z_s[terminal]++;
+
+    /*
+    stringstream z_s_ss;
+    copy(z_s.begin(), z_s.end(), ostream_iterator<double>(z_s_ss, " "));
+    ROS_INFO_STREAM("z_s: " << z_s_ss.str());
+
+    stringstream z_a_ss;
+    copy(z_a[0].begin(), z_a[0].end(), ostream_iterator<double>(z_a_ss, " "));
+    ROS_INFO_STREAM("z_a[" << 0 << "]: " << z_a_ss.str());
+    */
   }
 
   for (int i = 0; i < n_states; ++i) {
-    for_each(z_a[i].begin(), z_a[i].end(), bind1st(divides<double>(), z_s[i]));
+    transform(z_a[i].begin(), z_a[i].end(), z_a[i].begin(), bind2nd(divides<double>(), z_s[i]));
   }
 
   return z_a;
@@ -317,21 +351,22 @@ vector<double> PlanExplainer::calcExpectedStateFreq(const vector<ExplanationStat
                                                     const vector<vector<double> >& policy,
                                                     const int horizon) {
   int n_states = mdp.size();
-  vector<double> state_freq(n_states);
+  vector<double> state_freq(start_dist);
   vector<double> d_t(n_states);
-  vector<double> d_next(n_states);
+  vector<double> d_next(start_dist);
 
   for (int t = 0; t < horizon; ++t) {
     d_t = d_next;
     d_next = vector<double>(n_states);
 
-    for (int k = 0; k < n_states; ++k) {
-      for (int j = 0; j < mdp[k].previous.size(); ++j) {
-        int i = mdp[k].previous[j];
-        d_next[k] = d_t[i] * policy[i][j];
+    for (int i = 0; i < n_states; ++i) {
+      for (int j = 0; j < mdp[i].next.size(); ++j) {
+        int k = mdp[i].next[j];
+        d_next[k] += d_t[i] * policy[i][j];
       }
     }
 
+    //state_freq += D_next
     transform(state_freq.begin(), state_freq.end(), d_next.begin(), state_freq.begin(), plus<double>());
   }
 
@@ -349,12 +384,16 @@ void PlanExplainer::irl(const vector<vector<ExplanationState> >& mdps,
     vector<double> gradient(feature_expectation);
 
     for (int i = 0; i < mdps.size(); ++i) {
-      vector<vector<double> > policy = calcMaxEntPolicy(mdps[i], feature_expectation, horizon);
+      vector<vector<double> > policy = calcMaxEntPolicy(mdps[i], horizon);
 
       vector<double> start_dist(mdps[i].size());
       start_dist[0] = 1;
 
       vector<double> state_freq = calcExpectedStateFreq(mdps[i], start_dist, policy, horizon);
+
+      /*stringstream state_freq_ss;
+      copy(state_freq.begin(), state_freq.end(), ostream_iterator<double>(state_freq_ss, " "));
+      ROS_INFO_STREAM("state frequency: " << state_freq_ss.str());*/
 
       for (int j = 0; j < mdps[i].size(); ++j) {
         ExplanationState state = mdps[i][j];
@@ -362,7 +401,7 @@ void PlanExplainer::irl(const vector<vector<ExplanationState> >& mdps,
 
         //gradient -= features*state_freq[j]
         transform(state.features.begin(), state.features.end(), 
-                  back_inserter(feature_freq), bind1st(multiplies<double>(), state_freq[j]));
+                  back_inserter(feature_freq), bind2nd(multiplies<double>(), state_freq[j]));
 
         transform(gradient.begin(), gradient.end(), feature_freq.begin(), gradient.begin(), minus<double>());
       }
@@ -370,25 +409,35 @@ void PlanExplainer::irl(const vector<vector<ExplanationState> >& mdps,
     }
 
     //weights += gradient*learning_rate
-    for_each(gradient.begin(), gradient.end(), bind1st(multiplies<double>(), learning_rate));
+    transform(gradient.begin(), gradient.end(), gradient.begin(), bind2nd(multiplies<double>(), learning_rate));
     transform(weights.begin(), weights.end(), gradient.begin(), weights.begin(), plus<double>());
-    
+
+    /*stringstream weights_ss;
+    copy(weights.begin(), weights.end(), ostream_iterator<double>(weights_ss, " "));
+    ROS_INFO_STREAM("weights: " << weights_ss.str());
+
+    stringstream gradient_ss;
+    copy(gradient.begin(), gradient.end(), ostream_iterator<double>(gradient_ss, " "));
+    ROS_INFO_STREAM("gradient: " << gradient_ss.str());*/
   }
+
+  stringstream weights_ss;
+  copy(weights.begin(), weights.end(), ostream_iterator<double>(weights_ss, " "));
+  ROS_INFO_STREAM("weights: " << weights_ss.str());
 }
 
 void PlanExplainer::lfd() {
-  //at(l3_300,1)=true at(l3_302,1)=false beside(checkpoint_1,1)=false beside(d3_400,1)=true 
-  //facing(checkpoint_1,1)=false facing(d3_400,1)=true open(d3_400,2)=true at(l3_300,3)=false 
-  //at(l3_400,3)=true facing(d3_400,3)=false beside(d3_400,4)=false beside(d3_414b2,4)=true 
-  //facing(d3_414b2,4)=true open(d3_414b2,5)=true at(l3_400,6)=false at(l3_414b,6)=true 
-  //facing(d3_414b2,6)=false found(y,7)=true inroom(y,l3_414b,7)=true messagedelivered(y,m0,8)=true 
 
   vector<vector<Predicate> > plans;
   vector<vector<ExplanationState> > explanations;
   vector<vector<ExplanationState> > mdps;
-  vector<double> feature_expectation(predicateMap.size());
 
   {
+    //at(l3_300,1)=true at(l3_302,1)=false beside(checkpoint_1,1)=false beside(d3_400,1)=true 
+    //facing(checkpoint_1,1)=false facing(d3_400,1)=true open(d3_400,2)=true at(l3_300,3)=false 
+    //at(l3_400,3)=true facing(d3_400,3)=false beside(d3_400,4)=false beside(d3_414b2,4)=true 
+    //facing(d3_414b2,4)=true open(d3_414b2,5)=true at(l3_400,6)=false at(l3_414b,6)=true 
+    //facing(d3_414b2,6)=false found(y,7)=true inroom(y,l3_414b,7)=true messagedelivered(y,m0,8)=true 
     vector<Predicate> plan;
     plan.push_back(Predicate(AspFluent("at(l3_302,1)"), false));
     plan.push_back(Predicate(AspFluent("at(l3_300,1)"), true));
@@ -410,34 +459,84 @@ void PlanExplainer::lfd() {
     plan.push_back(Predicate(AspFluent("found(y,7)"), true));
     plan.push_back(Predicate(AspFluent("inroom(y,l3_414b,7)"), true));
     plan.push_back(Predicate(AspFluent("messagedelivered(y,m0,8)"), true));
+    plan.push_back(Predicate(AspFluent("terminate(9)"), true));
     
-    liftPlan(plan);
+    plans.push_back(plan);
 
-    //print lifted predicates
-    stringstream predicatesStream;
-    predicatesStream << "plan changes: ";
-    transform(plan.begin(),plan.end(),ostream_iterator<string>(predicatesStream," "), boost::bind(&Predicate::toString, _1, true));
-    ROS_INFO_STREAM(predicatesStream.str());
+  }
 
-    int i = 0;
-    vector<Predicate>::iterator it = plan.begin();
-    for (; it != plan.end(); ++it, ++i) {
-      predicateMap[*it] = i;
+  {
+    //beside(o0,1)[beside(checkpoint_3,1)]=false beside(d0,1)[beside(d3_414b2,1)]=true 
+    //facing(o0,1)[facing(checkpoint_3,1)]=false facing(d0,1)[facing(d3_414b2,1)]=true 
+    //open(d0,2)[open(d3_414b2,2)]=true at(l0,3)[at(l3_400,3)]=false at(l1,3)[at(l3_414b,3)]=true 
+    //facing(d0,3)[facing(d3_414b2,3)]=false found(p0,4)[found(y,4)]=true inroom(p0,l1,4)[inroom(y,l3_414b,4)]=true 
+    //messagedelivered(p0,m0,5)[messagedelivered(y,m0,5)]=true
+    vector<Predicate> plan;
+    plan.push_back(Predicate(AspFluent("beside(checkpoint_3,1)"), false));
+    plan.push_back(Predicate(AspFluent("beside(d3_414b2,1)"), true));
+    plan.push_back(Predicate(AspFluent("facing(checkpoint_3,1)"), false));
+    plan.push_back(Predicate(AspFluent("facing(d3_414b2,1)"), true));
+    plan.push_back(Predicate(AspFluent("open(d3_414b2,2)"), true));
+    plan.push_back(Predicate(AspFluent("at(l3_400,3)"), false));
+    plan.push_back(Predicate(AspFluent("at(l3_414b,3)"), true));
+    plan.push_back(Predicate(AspFluent("facing(d3_414b2,3)"), false));
+    plan.push_back(Predicate(AspFluent("found(y,4)"), true));
+    plan.push_back(Predicate(AspFluent("inroom(y,l3_414b,4)"), true));
+    plan.push_back(Predicate(AspFluent("messagedelivered(y,m0,5)"), true));
+    plan.push_back(Predicate(AspFluent("terminate(6)"), true));
+
+    plans.push_back(plan);
+
+  }
+
+  for (int i = 0; i < plans.size(); ++i) {
+    liftPlan(plans[i]);
+
+    vector<Predicate>::iterator it = plans[i].begin();
+    for (; it != plans[i].end(); ++it) {
+      if (predicateMap.find(*it) == predicateMap.end()) {
+        int index = predicateMap.size();
+        predicateMap[*it] = index;
+      }
     }
+  }
+    
 
-    vector<ExplanationState> mdp = buildStateSpace(plan);  
+  {
+    vector<ExplanationState> mdp = buildStateSpace(plans[0]);
+    mdps.push_back(mdp);
 
     vector<ExplanationState> explanation;
     explanation.push_back(mdp[0]);
-    explanation.push_back(mdp[15]);
+    explanation.push_back(mdp[16]);
     explanation.push_back(mdp[18]);
     explanation.push_back(mdp[20]);
-    explanation.push_back(mdp[mdp.size()-1]);
+    explanation.push_back(mdp[21]);
 
-    plans.push_back(plan);
+    explanations.push_back(explanation);
+  }  
+
+  {
+    vector<ExplanationState> mdp = buildStateSpace(plans[1]);
     mdps.push_back(mdp);
+
+    vector<ExplanationState> explanation;
+    explanation.push_back(mdp[0]);
+    explanation.push_back(mdp[7]);
+    explanation.push_back(mdp[9]);
+    explanation.push_back(mdp[11]);
+    explanation.push_back(mdp[12]);
+
     explanations.push_back(explanation);
   }
+
+  /*
+  for (map<Predicate, int, PredicateComp>::iterator it = predicateMap.begin(); it != predicateMap.end(); ++it) {
+    ROS_INFO_STREAM(it->first.toString() << " " << it->second);
+  }
+  */
+
+  vector<double> feature_expectation(predicateMap.size());
 
   //calculate feature expectation for each demo
   vector<vector<ExplanationState> >::const_iterator xIt = explanations.begin();
@@ -451,12 +550,106 @@ void PlanExplainer::lfd() {
     }
   }
 
-  irl(mdps, feature_expectation, 100, 10, 0.5);
+  /*//print feature expectation
+  stringstream feature_expec_ss;
+  copy(feature_expectation.begin(), feature_expectation.end(), ostream_iterator<double>(feature_expec_ss, " "));
+  ROS_INFO_STREAM("feature expectation: " << feature_expec_ss.str());
+  */
 
-  stringstream weights_ss;
-  copy(weights.begin(), weights.end(), ostream_iterator<double>(weights_ss, " "));
-  ROS_INFO_STREAM(weights_ss.str());
+  weights = vector<double>(predicateMap.size());
+
+  irl(mdps, feature_expectation, 200, 10, 0.5);
+
+  //plan = plans[0];
+  //getRandomExplanation();
+  //plan = plans[1];
+  //getRandomExplanation();
   
+}
+
+string location2Text(const string& variable) {
+  string text = variable;
+  if (text[0] == 'l') {
+    text = text.substr(1);
+    replace(text.begin(), text.end(), '_', '.');
+  }
+  return text;
+}
+
+string person2Text(const string& variable) {
+  string text = variable;
+  text[0] = toupper(text[0]);
+  return text;
+}
+
+string door2Text(const string& variable) {
+  string text = variable;
+  if (text[0] == 'd') {
+    text = variable.substr(1, 6);
+    replace(text.begin(), text.end(), '_', '.');
+  }
+  return "the door connecting to " + text;
+}
+
+string object2Text(const string& variable) {
+  string text = variable;
+  if (text[0] == 'o') {
+    text = variable.substr(1);
+    replace(text.begin(), text.end(), '_', '.');
+  }
+  return text;
+}
+
+string fluent2Text(const AspFluent& fluent, bool isTrue) {
+  if (fluent.getName() == "at") 
+    if (isTrue) {return "go to " + location2Text(fluent.getParameters()[0]);}
+    else {return "leave " + location2Text(fluent.getParameters()[0]);}
+
+  if (fluent.getName() == "facing") {
+    string parameter = fluent.getParameters()[0];
+
+    if (parameter[0] == 'd') {
+      parameter = door2Text(parameter);
+      if (isTrue) {return "turn to " + parameter;}
+      else {return "go through " + parameter;}
+    }
+    else{
+      parameter = object2Text(parameter);
+      if (isTrue) {return "turn to " + parameter;}
+      else {return "turn away from " + parameter;}
+    }
+  }
+
+  if (fluent.getName() == "beside") {
+    string parameter = fluent.getParameters()[0];
+    if (parameter[0] == 'd') {parameter = door2Text(parameter);}
+    else {parameter = object2Text(parameter);}
+
+    if (isTrue) {return "approach " + parameter;}
+    else {return "get away from " + parameter;}
+  }
+
+  if (fluent.getName() == "open") 
+    if (isTrue) {return "open " + door2Text(fluent.getParameters()[0]);}
+    else {return "check that " + door2Text(fluent.getParameters()[0]) + " is closed";}
+
+  if (fluent.getName() == "accessgranted") 
+    if (isTrue) {return "check that I'm allowed to go through " + door2Text(fluent.getParameters()[0]);}
+    else {return "know that I'm not allowed to go through " + door2Text(fluent.getParameters()[0]);}
+
+  if (fluent.getName() == "found") 
+    if (isTrue) {return "find " + person2Text(fluent.getParameters()[0]);}
+    else {return "not know the location of " + person2Text(fluent.getParameters()[0]);}
+
+  if (fluent.getName() == "inroom") 
+    if (isTrue) {return "check that " + person2Text(fluent.getParameters()[0]) + " is in room " + location2Text(fluent.getParameters()[1]);}
+    else {return "check that " + person2Text(fluent.getParameters()[0]) + " is not in room " + location2Text(fluent.getParameters()[1]);}
+
+  if (fluent.getName() == "messagedelivered") 
+    if (isTrue) {return "deliver a message to " + person2Text(fluent.getParameters()[0]);}
+    else {return "not deliver a message to " + person2Text(fluent.getParameters()[0]);}
+
+  return "undefined predicate " + fluent.getName();
 }
 
 std::string EntityGeneralizer::operator()(const std::string& variable){

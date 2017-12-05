@@ -6,56 +6,8 @@
 
 namespace bwi_krexec {
 
-class Predicate;
 class EntityGeneralizer;
 class ExplanationState;
-
-class PlanExplainer {
-public:
-  PlanExplainer(const actasp::ActionSet& actions) : isAnAction(actions) {
-    lfd();
-  }
-
-  void setPlan(const actasp::AnswerSet& newFluents);
-
-
-  std::string getRandomExplanation(const int length);
-
-  std::string getAllPairs();
-
-
-private:
-  std::map<Predicate, int> predicateMap;
-  
-  actasp::IsAnAction isAnAction;
-  std::vector<Predicate> plan;
-  std::vector<double> weights;
-
-  std::vector<Predicate> getFluentDifference(const std::set<actasp::AspFluent>& set1, 
-                                                      const std::set<actasp::AspFluent>& set2);
-
-  std::vector<ExplanationState> buildStateSpace(const std::vector<Predicate>& predicates);
-
-  void liftPlan(std::vector<Predicate>& predicates);
-
-  void lfd();
-
-  void irl(const std::vector<std::vector<ExplanationState> >& mdps, 
-          const std::vector<double>& feature_expectation,
-          const int n_epochs,
-          const int horizon,
-          const double learning_rate);
-
-  std::vector<std::vector<double> > calcMaxEntPolicy(const std::vector<ExplanationState>& mdp, 
-                                                    const std::vector<double>& feature_expectation,
-                                                    const int horizon);
-
-  std::vector<double> calcExpectedStateFreq(const std::vector<ExplanationState>& mdp,
-                                            const std::vector<double>& start_dist,
-                                            const std::vector<std::vector<double> >& policy,
-                                            const int horizon);
-
-};
 
 struct Predicate{
   Predicate(const actasp::AspFluent& fluent, const bool isTrue) : 
@@ -103,6 +55,65 @@ struct Predicate{
   actasp::AspFluent fluent;
   actasp::AspFluent grounded;
   bool isTrue;
+};
+
+struct PredicateComp {
+  bool operator() (const Predicate& lhs, const Predicate& rhs) const {
+    if (lhs.isTrue != rhs.isTrue)
+      return rhs.isTrue;
+
+    if (lhs.fluent.toString(0) != rhs.fluent.toString(0)) {
+      return (lhs.fluent.toString(0) < rhs.fluent.toString(0));
+    }
+
+    return false;
+  }
+};
+
+class PlanExplainer {
+public:
+  PlanExplainer(const actasp::ActionSet& actions) : isAnAction(actions) {
+    lfd();
+  }
+
+  void setPlan(const actasp::AnswerSet& newFluents);
+
+  std::string getAllPairs();
+  std::string getRandomExplanation(const int length);
+  std::string getRandomExplanation();
+  std::string getLearnedExplanation();
+
+
+private:
+  std::map<Predicate, int, PredicateComp> predicateMap;
+  
+  actasp::IsAnAction isAnAction;
+  std::vector<Predicate> plan;
+  std::vector<double> weights;
+
+  std::vector<Predicate> getFluentDifference(const std::set<actasp::AspFluent>& set1, 
+                                                      const std::set<actasp::AspFluent>& set2);
+
+  std::vector<ExplanationState> buildStateSpace(const std::vector<Predicate>& predicates);
+
+  void liftPlan(std::vector<Predicate>& predicates);
+
+  void lfd();
+
+  void irl(const std::vector<std::vector<ExplanationState> >& mdps, 
+          const std::vector<double>& feature_expectation,
+          const int n_epochs,
+          const int horizon,
+          const double learning_rate);
+
+  std::vector<std::vector<double> > calcMaxEntPolicy(const std::vector<ExplanationState>& mdp, 
+                                                    const int horizon);
+
+  std::vector<double> calcExpectedStateFreq(const std::vector<ExplanationState>& mdp,
+                                            const std::vector<double>& start_dist,
+                                            const std::vector<std::vector<double> >& policy,
+                                            const int horizon);
+
 };
 
 class EntityGeneralizer{

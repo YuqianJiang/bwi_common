@@ -327,18 +327,42 @@ int main(int argc, char**argv) {
   explainDeliveryPlan(target, id);
 
   string goal_question = "Do you understand what my task is?";
-  ROS_INFO_STREAM("1.1 understand task: " << askYesNoQuestion(goal_question));
-
   string guess_question = "Make a guess!";
-  ROS_INFO_STREAM("1.2 guess task: " << askTextQuestion(guess_question));
 
-  string confidence_question = "Do you believe my plan will work?";
-  ROS_INFO_STREAM("1.3 can complete: " << askYesNoQuestion(confidence_question));
+  bwi_msgs::QuestionDialog guess_question_choices;
+  guess_question_choices.request.type = bwi_msgs::QuestionDialogRequest::CHOICE_QUESTION;
+  string question = "Make a guess! My task is...\n";
+  question += "A. go to one of the offices on this floor \n";
+  question += "B. look for a person \n";
+  question += "C. send a message to a person \n";
+  question += "D. check who is in the lab";
+  guess_question_choices.request.message = question;
+
+  guess_question_choices.request.options.push_back("A");
+  guess_question_choices.request.options.push_back("B");
+  guess_question_choices.request.options.push_back("C");
+  guess_question_choices.request.options.push_back("D");
+  guess_question_choices.request.timeout = 0.0;
+
+  if (askYesNoQuestion(goal_question)) {
+    ROS_INFO_STREAM("1.1 understand task: " << true);
+    ROS_INFO_STREAM("1.2 guess task: " << askTextQuestion(guess_question));
+  }
+  else {
+    ROS_INFO_STREAM("1.1 understand task: " << false);
+    if (guiClient.call(guess_question_choices)) {
+      ROS_INFO_STREAM("1.2 guess task choice: " << guess_question_choices.response.index);
+    }
+    else {
+      ROS_ERROR("Failed to call service /question_dialog");
+      ros::shutdown();
+    }
+  }
 
   //motion prediction 1
   bwi_msgs::QuestionDialog prediction_question_1;
   prediction_question_1.request.type = bwi_msgs::QuestionDialogRequest::CHOICE_QUESTION;
-  string question = "Which of the following will I most likely do next? \n";
+  question = "Which of the following will I most likely do next? \n";
   question += "A. turn left to the instructional lab \n";
   question += "B. go straight \n";
   question += "C. turn right to take the elevator";
@@ -350,7 +374,7 @@ int main(int argc, char**argv) {
   prediction_question_1.request.timeout = 0.0;
 
   if (guiClient.call(prediction_question_1)) {
-    ROS_INFO_STREAM("1.4 predict turn: " << prediction_question_1.response.index);
+    ROS_INFO_STREAM("1.3 predict turn: " << prediction_question_1.response.index);
   }
   else {
     ROS_ERROR("Failed to call service /question_dialog");
@@ -371,9 +395,20 @@ int main(int argc, char**argv) {
   sendCheckpointGoal("checkpoint_3");
   explainDeliveryPlan(target, id);
 
-  ROS_INFO_STREAM("3.1 understand task: " << askYesNoQuestion(goal_question));
-  ROS_INFO_STREAM("3.2 guess task: " << askTextQuestion(guess_question));
-  ROS_INFO_STREAM("3.3 can complete: " << askYesNoQuestion(confidence_question));
+  if (askYesNoQuestion(goal_question)) {
+    ROS_INFO_STREAM("3.1 understand task: " << true);
+    ROS_INFO_STREAM("3.2 guess task: " << askTextQuestion(guess_question));
+  }
+  else {
+    ROS_INFO_STREAM("3.1 understand task: " << false);
+    if (guiClient.call(guess_question_choices)) {
+      ROS_INFO_STREAM("3.2 guess task choice: " << guess_question_choices.response.index);
+    }
+    else {
+      ROS_ERROR("Failed to call service /question_dialog");
+      ros::shutdown();
+    }
+  }
 
   //prediction of motion
   bwi_msgs::QuestionDialog prediction_question_2;
@@ -388,7 +423,7 @@ int main(int argc, char**argv) {
   prediction_question_2.request.timeout = 0.0;
 
   if (guiClient.call(prediction_question_2)) {
-    ROS_INFO_STREAM("3.4 predict turn: " << prediction_question_2.response.index);
+    ROS_INFO_STREAM("3.3 predict turn: " << prediction_question_2.response.index);
   }
   else {
     ROS_ERROR("Failed to call service /question_dialog");
@@ -405,6 +440,7 @@ int main(int argc, char**argv) {
 
   //turn around to the lab door
   sendFacingGoal("d3_414b2");
+  //explainDeliveryPlan(target, id);
 
   //prediction of motion 3
   bwi_msgs::QuestionDialog prediction_question_3;
@@ -432,8 +468,22 @@ int main(int argc, char**argv) {
   explainDeliveryPlan(target, id);
 
   //experimenter announces whether Y is here
-  ROS_INFO_STREAM("5.1 understand task: " << askYesNoQuestion(goal_question));
-  ROS_INFO_STREAM("5.2 guess task: " << askTextQuestion(guess_question));
+  if (askYesNoQuestion(goal_question)) {
+    ROS_INFO_STREAM("5.1 understand task: " << true);
+    ROS_INFO_STREAM("5.2 guess task: " << askTextQuestion(guess_question));
+  }
+  else {
+    ROS_INFO_STREAM("5.1 understand task: " << false);
+    if (guiClient.call(guess_question_choices)) {
+      ROS_INFO_STREAM("5.2 guess task choice: " << guess_question_choices.response.index);
+    }
+    else {
+      ROS_ERROR("Failed to call service /question_dialog");
+      ros::shutdown();
+    }
+  }
+
+  string confidence_question = "Do you think I can accomplish my task?";
   ROS_INFO_STREAM("5.3 can complete: " << askYesNoQuestion(confidence_question));
 
   sendDeliveryGoal(target, id);

@@ -77,7 +77,7 @@ public:
     explainer->setPlan(newFluents);
 
     bwi_kr_execution::ExecutePlanFeedback planFeedback;
-    planFeedback.plan_explanation = explainer->getRandomExplanation(2);
+    planFeedback.plan_explanation = explainer->getRandomExplanation();
     server->publishFeedback(planFeedback);
 
   }
@@ -170,7 +170,7 @@ bool computeAndExplainPlan(bwi_kr_execution::ComputeAndExplainPlan::Request  &re
 
   explainer->setPlan(answer);
   //ROS_INFO_STREAM(explainer->getAllPairs());
-  res.plan_explanation = explainer->getRandomExplanation(2);
+  res.plan_explanation = explainer->getRandomExplanation();
 
   return true;
 }
@@ -192,10 +192,9 @@ int main(int argc, char**argv) {
 
 //  create initial state
   LogicalNavigation setInitialState("senseState");
-  while (!setInitialState.hasFinished()) {
+  while (ros::ok() && (!setInitialState.hasFinished())) {
     setInitialState.run();
   }
-
 
   bool simulating;
   privateNode.param<bool>("simulation",simulating,false);
