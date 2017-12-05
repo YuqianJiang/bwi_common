@@ -16,6 +16,7 @@ accessgranted(D,I) :- knock(D,I), I>0, I=n-1.
 %action searchroom(P,R,I)  ask if person P is in room R
 inroom(P,R,I) :- searchroom(P,R,I), I>0, I=n-1.
 :- searchroom(P,R,I), not at(R,I-1), I>0, I=n-1.
+:- searchroom(P,R,I), -inroom(P,R,I-1), I>0, I=n-1.
 :- searchroom(P,R,I), not possiblelocation(P,R), person(P), room(R), I>0, I=n-1.
 %can only bother bwi people
 %:- searchroom(P,R,I), not ingroup(P,bwi), hasoffice(P,R), person(P), I>0, I=n-1.
@@ -64,7 +65,7 @@ lookingfor(P,I) :- lookingfor(P,I).
 
 %inroom is inertial
 inroom(P,R,I) :- inroom(P,R,I-1), not -inroom(P,R,I), I>0, I=n-1.
--inroom(P,R,I) :- -inroom(P,R,I-1), not inroom(P,R,I), I>0, I=n-1.
+-inroom(P,R,I) :- -inroom(P,R,I-1), not inroom(P,R,I), not lookingfor(P,1), I>0, I=n-1.
 %you can't be at two places at the some time
 %-inroom(P,R2,I):- inroom(P,R1,I), inroom(P,R2,I-1), R1 != R2, I>0, I=n-1.
 

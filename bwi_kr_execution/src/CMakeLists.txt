@@ -11,7 +11,8 @@ SET( xpexec_SRC ${xpexec_SRC}
   ${CMAKE_CURRENT_SOURCE_DIR}/explain_plan_executor.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/msgs_utils.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/RemoteReasoner.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/StaticFacts.cpp  
+  ${CMAKE_CURRENT_SOURCE_DIR}/StaticFacts.cpp 
+  ${CMAKE_CURRENT_SOURCE_DIR}/PlanExplainer.cpp 
   PARENT_SCOPE)
 
 SET( anyexec_SRC ${anyexec_SRC}

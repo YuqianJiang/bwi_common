@@ -4,6 +4,6 @@ maps:
     origin: [0, 0, 0, 0, 0, 0]
     data_directory: package://utexas_gdc/maps/simulation/multimap2/2
   3rdFloor:
-    yaml: package://utexas_gdc/maps/simulation/multimap2/3ne/3ne.yaml
+    yaml: package://utexas_gdc/maps/simulation/multimap2/explanation_experiments/3ne.yaml
     origin: [0, 0, 0, 0, 0, 0]
-    data_directory: package://utexas_gdc/maps/simulation/multimap2/3ne
+    data_directory: package://utexas_gdc/maps/simulation/multimap2/explanation_experiments

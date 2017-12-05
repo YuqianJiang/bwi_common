@@ -3,7 +3,6 @@
 #include <bwi_msgs/LogicalNavigationAction.h>
 
 #include <actionlib/client/simple_action_client.h>
-#include <bwi_msgs/LogicalNavigationAction.h>
 #include <tf/transform_listener.h>
 #include <bwi_kr_execution/UpdateFluents.h>
 #include <bwi_kr_execution/CurrentStateQuery.h>
@@ -65,7 +64,7 @@ public:
   string addMessage(string content, string from, string to) {
     bwi_kr_execution::HriMessage message;
     stringstream ss;
-    ss << "message_" << id_counter++;
+    ss << "m" << id_counter++;
 
     message.id = ss.str();
     message.content = content;
@@ -330,7 +329,7 @@ bool validateTarget(string target) {
       if (!askTextQuestion(question, 20.0, locations)) return false;
 
       //TODO: test this
-      if (updateLocations(target, locations)) {
+      if (updateLocations(target, locations) && updateLookingFor(target)) {
         return true;
       }
 
@@ -364,7 +363,7 @@ bool updateRequesterInfo(string requester, string message_id) {
 
   //add object to map
   bwi_msgs::UpdateObject uo;
-  uo.request.object_name = "location_of_" + requester;
+  uo.request.object_name = "o_" + requester;
   uo.request.pose = msg;
   lnClient.call(uo);
 
@@ -391,7 +390,7 @@ bool updateRequesterInfo(string requester, string message_id) {
   bwi_kr_execution::AspFluent locationmarker;
   locationmarker.name = "locationmarker";
   locationmarker.variables.push_back(requester);
-  locationmarker.variables.push_back("location_of_" + requester);
+  locationmarker.variables.push_back("o_" + requester);
   uf.request.fluents.push_back(locationmarker);
 
   updateClient.call(uf);

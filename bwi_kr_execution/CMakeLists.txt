@@ -29,7 +29,8 @@ add_service_files(
     CurrentStateQuery.srv
     IsPlanValid.srv
     UpdateFluents.srv
-    GetHriMessage.srv)
+    GetHriMessage.srv
+    ComputeAndExplainPlan.srv)
 
 ## Generate actions in the 'action' folder
 add_action_files(FILES ExecutePlan.action)
