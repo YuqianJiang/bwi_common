@@ -441,9 +441,9 @@ void PlanExplainer::lfd() {
     vector<Predicate> plan;
     plan.push_back(Predicate(AspFluent("at(l3_302,1)"), false));
     plan.push_back(Predicate(AspFluent("at(l3_300,1)"), true));
-    plan.push_back(Predicate(AspFluent("beside(checkpoint_1,1)"), false));
+    plan.push_back(Predicate(AspFluent("beside(o3_302_printer,1)"), false));
     plan.push_back(Predicate(AspFluent("beside(d3_400,1)"), true));
-    plan.push_back(Predicate(AspFluent("facing(checkpoint_1,1)"), false));
+    plan.push_back(Predicate(AspFluent("facing(o3_302_printer,1)"), false));
     plan.push_back(Predicate(AspFluent("facing(d3_400,1)"), true));
     plan.push_back(Predicate(AspFluent("open(d3_400,2)"), true));
     plan.push_back(Predicate(AspFluent("at(l3_300,3)"), false));
@@ -472,14 +472,14 @@ void PlanExplainer::lfd() {
     //facing(d0,3)[facing(d3_414b2,3)]=false found(p0,4)[found(y,4)]=true inroom(p0,l1,4)[inroom(y,l3_414b,4)]=true 
     //messagedelivered(p0,m0,5)[messagedelivered(y,m0,5)]=true
     vector<Predicate> plan;
-    plan.push_back(Predicate(AspFluent("beside(checkpoint_3,1)"), false));
-    plan.push_back(Predicate(AspFluent("beside(d3_414b2,1)"), true));
-    plan.push_back(Predicate(AspFluent("facing(checkpoint_3,1)"), false));
-    plan.push_back(Predicate(AspFluent("facing(d3_414b2,1)"), true));
-    plan.push_back(Predicate(AspFluent("open(d3_414b2,2)"), true));
-    plan.push_back(Predicate(AspFluent("at(l3_400,3)"), false));
+    plan.push_back(Predicate(AspFluent("beside(o3_500_printer,1)"), false));
+    plan.push_back(Predicate(AspFluent("beside(d3_414b1,1)"), true));
+    plan.push_back(Predicate(AspFluent("facing(o3_500_printer,1)"), false));
+    plan.push_back(Predicate(AspFluent("facing(d3_414b1,1)"), true));
+    plan.push_back(Predicate(AspFluent("open(d3_414b1,2)"), true));
+    plan.push_back(Predicate(AspFluent("at(l3_500,3)"), false));
     plan.push_back(Predicate(AspFluent("at(l3_414b,3)"), true));
-    plan.push_back(Predicate(AspFluent("facing(d3_414b2,3)"), false));
+    plan.push_back(Predicate(AspFluent("facing(d3_414b1,3)"), false));
     plan.push_back(Predicate(AspFluent("found(y,4)"), true));
     plan.push_back(Predicate(AspFluent("inroom(y,l3_414b,4)"), true));
     plan.push_back(Predicate(AspFluent("messagedelivered(y,m0,5)"), true));

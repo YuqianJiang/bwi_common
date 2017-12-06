@@ -32,6 +32,7 @@
 const int MAX_N = 30;
 const int PLANNER_TIMEOUT = 40; //seconds
 const std::string queryDirectory("/tmp/bwi_action_execution/");
+const bool baseline = false;
 
 
 using namespace std;
@@ -170,7 +171,13 @@ bool computeAndExplainPlan(bwi_kr_execution::ComputeAndExplainPlan::Request  &re
 
   explainer->setPlan(answer);
   //ROS_INFO_STREAM(explainer->getAllPairs());
-  res.plan_explanation = explainer->getRandomExplanation();
+
+  if (baseline) {
+    res.plan_explanation = explainer->getRandomExplanation();
+  }
+  else {
+    res.plan_explanation = explainer->getLearnedExplanation();
+  }
 
   return true;
 }
