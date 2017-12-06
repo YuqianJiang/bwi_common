@@ -313,7 +313,7 @@ vector<vector<double> > PlanExplainer::calcMaxEntPolicy(const vector<Explanation
 
     for (int i = 0; i < n_states; ++i) {
 
-      double dot = inner_product(weights.begin(), weights.end(), mdp[i].features.begin(), 0.0);
+      double dot = inner_product(weights.begin(), weights.end(), mdp[i].features.begin(), 0.0) * 0.5;
 
       for (int j = 0; j < mdp[i].next.size(); ++j) {
         //z_a[i][j] += trans_mat[i,j,k]*np.exp(np.dot(r_weights, state_features[i]))*z_s[k]
@@ -486,8 +486,34 @@ void PlanExplainer::lfd() {
     plan.push_back(Predicate(AspFluent("terminate(6)"), true));
 
     plans.push_back(plan);
-
   }
+
+  {
+    //found(p0,4)[found(y,4)]=true inroom(p0,l1,4)[inroom(y,l3_516,4)]=true 
+    //messagedelivered(p0,m0,5)[messagedelivered(y,m0,5)]=true
+    vector<Predicate> plan;
+    plan.push_back(Predicate(AspFluent("found(y,1)"), true));
+    plan.push_back(Predicate(AspFluent("inroom(y,l3_516,1)"), true));
+    plan.push_back(Predicate(AspFluent("messagedelivered(y,m0,2)"), true));
+    plan.push_back(Predicate(AspFluent("terminate(3)"), true));
+
+    plans.push_back(plan);
+  }
+
+  /*{
+    vector<Predicate> plan;
+    plan.push_back(Predicate(AspFluent("beside(o3_500_printer,1)"), false));
+    plan.push_back(Predicate(AspFluent("beside(d3_414a2,1)"), true));
+    plan.push_back(Predicate(AspFluent("facing(o3_500_printer,1)"), false));
+    plan.push_back(Predicate(AspFluent("facing(d3_414a2,1)"), true));
+    plan.push_back(Predicate(AspFluent("open(d3_414a2,2)"), true));
+    plan.push_back(Predicate(AspFluent("at(l3_500,3)"), false));
+    plan.push_back(Predicate(AspFluent("at(l3_414a,3)"), true));
+    plan.push_back(Predicate(AspFluent("facing(d3_414a2,3)"), false));
+    plan.push_back(Predicate(AspFluent("terminate(4)"), true));
+
+    plans.push_back(plan);
+  }*/
 
   for (int i = 0; i < plans.size(); ++i) {
     liftPlan(plans[i]);
@@ -530,6 +556,31 @@ void PlanExplainer::lfd() {
     explanations.push_back(explanation);
   }
 
+  {
+    vector<ExplanationState> mdp = buildStateSpace(plans[2]);
+    mdps.push_back(mdp);
+
+    vector<ExplanationState> explanation;
+    explanation.push_back(mdp[0]);
+    explanation.push_back(mdp[1]);
+    explanation.push_back(mdp[3]);
+    explanation.push_back(mdp[4]);
+
+    explanations.push_back(explanation);
+  }
+
+  /*{
+    vector<ExplanationState> mdp = buildStateSpace(plans[3]);
+    mdps.push_back(mdp);
+
+    vector<ExplanationState> explanation;
+    explanation.push_back(mdp[0]);
+    explanation.push_back(mdp[7]);
+    explanation.push_back(mdp[9]);
+
+    explanations.push_back(explanation);
+  }*/
+
   /*
   for (map<Predicate, int, PredicateComp>::iterator it = predicateMap.begin(); it != predicateMap.end(); ++it) {
     ROS_INFO_STREAM(it->first.toString() << " " << it->second);
@@ -550,20 +601,23 @@ void PlanExplainer::lfd() {
     }
   }
 
-  /*//print feature expectation
+  //print feature expectation
   stringstream feature_expec_ss;
   copy(feature_expectation.begin(), feature_expectation.end(), ostream_iterator<double>(feature_expec_ss, " "));
   ROS_INFO_STREAM("feature expectation: " << feature_expec_ss.str());
-  */
 
   weights = vector<double>(predicateMap.size());
 
-  irl(mdps, feature_expectation, 200, 10, 0.5);
+  irl(mdps, feature_expectation, 200, 10, 0.3);
 
-  //plan = plans[0];
-  //getRandomExplanation();
-  //plan = plans[1];
-  //getRandomExplanation();
+  plan = plans[0];
+  getLearnedExplanation();
+  plan = plans[1];
+  getLearnedExplanation();
+  plan = plans[2];
+  getLearnedExplanation();
+  //plan = plans[3];
+  //getLearnedExplanation();
   
 }
 
