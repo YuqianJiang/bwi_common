@@ -12,6 +12,11 @@ using namespace actasp;
 
 namespace bwi_krexec {
 
+const double discount_factor = 0.7;
+const double starting_learning_rate = 0.5;
+const int default_horizon = 10;
+const int default_n_epochs = 500;
+
 struct ExplanationState{
 
   ExplanationState(const vector<Predicate>& predicates, 
@@ -126,14 +131,14 @@ string PlanExplainer::getRandomExplanation() {
   stringstream explanation_ss;
 
   vector<ExplanationState> mdp = buildStateSpace(plan);
-  vector<vector<double> > policy = calcMaxEntPolicy(mdp, 10);
 
   int state = 0;
   int length = 0;
-  while ((policy[state].size() != 0) && (length < 4)) {
-    int nextStateIndex = rand() % policy[state].size();
+  while ((mdp[state].next.size() != 0) && (length < 4)) {
     
     vector<int> nextStates = mdp[state].next;
+    int nextStateIndex = rand() % nextStates.size();
+    ROS_INFO_STREAM(nextStates[nextStateIndex]);
     Predicate chosenPredicate = mdp[state].predicates[nextStateIndex];
 
     if (chosenPredicate.fluent.getName() != "terminate")
@@ -156,10 +161,41 @@ string PlanExplainer::getLearnedExplanation() {
   stringstream explanation_ss;
 
   vector<ExplanationState> mdp = buildStateSpace(plan);
-  vector<vector<double> > policy = calcMaxEntPolicy(mdp, 10);
+  vector<vector<double> > policy = calcMaxEntPolicy(mdp, default_horizon);
+
+  for (vector<Predicate>::iterator it = plan.begin(); it != plan.end(); ++it) {
+    if (predicateMap.find(*it) != predicateMap.end()) {
+      ROS_INFO_STREAM(it->toString() << ": " << weights[predicateMap.at(*it)]);
+    }
+  }
+
+  /*vector<double> start_dist(mdp.size());
+  start_dist[0] = 1;
+  vector<double> state_freq = calcExpectedStateFreq(mdp, start_dist, policy, default_horizon);
+
+  vector<double> feature_freq_plan(predicateMap.size());
+  for (int j = 0; j < mdp.size(); ++j) {
+    ExplanationState state = mdp[j];
+    vector<double> feature_freq;
+    transform(state.features.begin(), state.features.end(), 
+              back_inserter(feature_freq), bind2nd(multiplies<double>(), state_freq[j]));
+    transform(feature_freq_plan.begin(), feature_freq_plan.end(), feature_freq.begin(), feature_freq_plan.begin(), plus<double>());
+  }
+
+  stringstream feature_freq_ss;
+  copy(feature_freq_plan.begin(), feature_freq_plan.end(), ostream_iterator<double>(feature_freq_ss, " "));
+  ROS_INFO_STREAM("feature frequency: " << feature_freq_ss.str());*/
+
+  /*stringstream state_freq_ss;
+  copy(state_freq.begin(), state_freq.end(), ostream_iterator<double>(state_freq_ss, " "));
+  ROS_INFO_STREAM("state frequency: " << state_freq_ss.str());*/
 
   int state = 0;
   while (policy[state].size() != 0) {
+    /*stringstream policy_ss;
+    copy(policy[state].begin(), policy[state].end(), ostream_iterator<double>(policy_ss, " "));
+    ROS_INFO_STREAM("policy[ " << state << "]: " << policy_ss.str());*/
+
     int nextStateIndex = distance(policy[state].begin(), max_element(policy[state].begin(), policy[state].end()));
     
     vector<int> nextStates = mdp[state].next;
@@ -271,6 +307,7 @@ vector<ExplanationState> PlanExplainer::buildStateSpace(const vector<Predicate>&
 void Predicate::lift(EntityGeneralizer& entityGeneralizer) {
   
   if (!isGrounded()) return;
+  if (this->fluent.getName() == "terminate") return;
 
   vector<string> groundedVar = this->fluent.getParameters();
   vector<string> liftedVar;
@@ -290,10 +327,10 @@ void PlanExplainer::liftPlan(std::vector<Predicate>& predicates) {
     it->lift(entityGeneralizer);
   }
 
-  stringstream predicatesStream;
+  /*stringstream predicatesStream;
   predicatesStream << "plan changes: ";
   transform(predicates.begin(),predicates.end(),ostream_iterator<string>(predicatesStream," "), boost::bind(&Predicate::toString, _1, true));
-  ROS_INFO_STREAM(predicatesStream.str());
+  ROS_INFO_STREAM(predicatesStream.str());*/
 }
 
 vector<vector<double> > PlanExplainer::calcMaxEntPolicy(const vector<ExplanationState>& mdp, 
@@ -313,7 +350,7 @@ vector<vector<double> > PlanExplainer::calcMaxEntPolicy(const vector<Explanation
 
     for (int i = 0; i < n_states; ++i) {
 
-      double dot = inner_product(weights.begin(), weights.end(), mdp[i].features.begin(), 0.0) * 0.5;
+      double dot = inner_product(weights.begin(), weights.end(), mdp[i].features.begin(), 0.0) * discount_factor;
 
       for (int j = 0; j < mdp[i].next.size(); ++j) {
         //z_a[i][j] += trans_mat[i,j,k]*np.exp(np.dot(r_weights, state_features[i]))*z_s[k]
@@ -374,16 +411,20 @@ vector<double> PlanExplainer::calcExpectedStateFreq(const vector<ExplanationStat
 }
 
 void PlanExplainer::irl(const vector<vector<ExplanationState> >& mdps, 
-                        const vector<double>& feature_expectation,
+                        const vector<vector<double> >& feature_expectation,
                         const int n_epochs,
                         const int horizon,
                         const double learning_rate) {
 
+  double l = learning_rate;
+
   for (int e = 0; e < n_epochs; ++e) {
 
-    vector<double> gradient(feature_expectation);
+    //l -= learning_rate/n_epochs;
 
     for (int i = 0; i < mdps.size(); ++i) {
+      vector<double> gradient(feature_expectation[i]);
+
       vector<vector<double> > policy = calcMaxEntPolicy(mdps[i], horizon);
 
       vector<double> start_dist(mdps[i].size());
@@ -395,6 +436,8 @@ void PlanExplainer::irl(const vector<vector<ExplanationState> >& mdps,
       copy(state_freq.begin(), state_freq.end(), ostream_iterator<double>(state_freq_ss, " "));
       ROS_INFO_STREAM("state frequency: " << state_freq_ss.str());*/
 
+      vector<double> feature_freq_plan(feature_expectation[i].size());
+
       for (int j = 0; j < mdps[i].size(); ++j) {
         ExplanationState state = mdps[i][j];
         vector<double> feature_freq;
@@ -404,14 +447,29 @@ void PlanExplainer::irl(const vector<vector<ExplanationState> >& mdps,
                   back_inserter(feature_freq), bind2nd(multiplies<double>(), state_freq[j]));
 
         transform(gradient.begin(), gradient.end(), feature_freq.begin(), gradient.begin(), minus<double>());
+        transform(feature_freq_plan.begin(), feature_freq_plan.end(), feature_freq.begin(), feature_freq_plan.begin(), plus<double>());
       }
+
+      //weights += gradient*learning_rate
+      transform(gradient.begin(), gradient.end(), gradient.begin(), bind2nd(multiplies<double>(), l));
+      transform(weights.begin(), weights.end(), gradient.begin(), weights.begin(), plus<double>());
+
+      /*stringstream feature_freq_ss;
+      copy(feature_freq_plan.begin(), feature_freq_plan.end(), ostream_iterator<double>(feature_freq_ss, " "));
+      ROS_INFO_STREAM("feature frequency[" << i << "]: " << feature_freq_ss.str());
+
+      stringstream gradient_ss;
+      copy(gradient.begin(), gradient.end(), ostream_iterator<double>(gradient_ss, " "));
+      ROS_INFO_STREAM("gradient[" << i << "]: " << gradient_ss.str());
+
+      stringstream weights_ss;
+      copy(weights.begin(), weights.end(), ostream_iterator<double>(weights_ss, " "));
+      ROS_INFO_STREAM("weights[" << i << "]: " << weights_ss.str());*/
+
 
     }
 
-    //weights += gradient*learning_rate
-    transform(gradient.begin(), gradient.end(), gradient.begin(), bind2nd(multiplies<double>(), learning_rate));
-    transform(weights.begin(), weights.end(), gradient.begin(), weights.begin(), plus<double>());
-
+    
     /*stringstream weights_ss;
     copy(weights.begin(), weights.end(), ostream_iterator<double>(weights_ss, " "));
     ROS_INFO_STREAM("weights: " << weights_ss.str());
@@ -421,9 +479,6 @@ void PlanExplainer::irl(const vector<vector<ExplanationState> >& mdps,
     ROS_INFO_STREAM("gradient: " << gradient_ss.str());*/
   }
 
-  stringstream weights_ss;
-  copy(weights.begin(), weights.end(), ostream_iterator<double>(weights_ss, " "));
-  ROS_INFO_STREAM("weights: " << weights_ss.str());
 }
 
 void PlanExplainer::lfd() {
@@ -432,12 +487,7 @@ void PlanExplainer::lfd() {
   vector<vector<ExplanationState> > explanations;
   vector<vector<ExplanationState> > mdps;
 
-  {
-    //at(l3_300,1)=true at(l3_302,1)=false beside(checkpoint_1,1)=false beside(d3_400,1)=true 
-    //facing(checkpoint_1,1)=false facing(d3_400,1)=true open(d3_400,2)=true at(l3_300,3)=false 
-    //at(l3_400,3)=true facing(d3_400,3)=false beside(d3_400,4)=false beside(d3_414b2,4)=true 
-    //facing(d3_414b2,4)=true open(d3_414b2,5)=true at(l3_400,6)=false at(l3_414b,6)=true 
-    //facing(d3_414b2,6)=false found(y,7)=true inroom(y,l3_414b,7)=true messagedelivered(y,m0,8)=true 
+  { 
     vector<Predicate> plan;
     plan.push_back(Predicate(AspFluent("at(l3_302,1)"), false));
     plan.push_back(Predicate(AspFluent("at(l3_300,1)"), true));
@@ -459,18 +509,12 @@ void PlanExplainer::lfd() {
     plan.push_back(Predicate(AspFluent("found(y,7)"), true));
     plan.push_back(Predicate(AspFluent("inroom(y,l3_414b,7)"), true));
     plan.push_back(Predicate(AspFluent("messagedelivered(y,m0,8)"), true));
-    plan.push_back(Predicate(AspFluent("terminate(9)"), true));
+    plan.push_back(Predicate(AspFluent("terminate(deliver1,9)"), true));
     
     plans.push_back(plan);
-
   }
 
   {
-    //beside(o0,1)[beside(checkpoint_3,1)]=false beside(d0,1)[beside(d3_414b2,1)]=true 
-    //facing(o0,1)[facing(checkpoint_3,1)]=false facing(d0,1)[facing(d3_414b2,1)]=true 
-    //open(d0,2)[open(d3_414b2,2)]=true at(l0,3)[at(l3_400,3)]=false at(l1,3)[at(l3_414b,3)]=true 
-    //facing(d0,3)[facing(d3_414b2,3)]=false found(p0,4)[found(y,4)]=true inroom(p0,l1,4)[inroom(y,l3_414b,4)]=true 
-    //messagedelivered(p0,m0,5)[messagedelivered(y,m0,5)]=true
     vector<Predicate> plan;
     plan.push_back(Predicate(AspFluent("beside(o3_500_printer,1)"), false));
     plan.push_back(Predicate(AspFluent("beside(d3_414b1,1)"), true));
@@ -483,24 +527,46 @@ void PlanExplainer::lfd() {
     plan.push_back(Predicate(AspFluent("found(y,4)"), true));
     plan.push_back(Predicate(AspFluent("inroom(y,l3_414b,4)"), true));
     plan.push_back(Predicate(AspFluent("messagedelivered(y,m0,5)"), true));
-    plan.push_back(Predicate(AspFluent("terminate(6)"), true));
+    plan.push_back(Predicate(AspFluent("terminate(deliver2,6)"), true));
 
     plans.push_back(plan);
   }
 
   {
-    //found(p0,4)[found(y,4)]=true inroom(p0,l1,4)[inroom(y,l3_516,4)]=true 
-    //messagedelivered(p0,m0,5)[messagedelivered(y,m0,5)]=true
     vector<Predicate> plan;
     plan.push_back(Predicate(AspFluent("found(y,1)"), true));
     plan.push_back(Predicate(AspFluent("inroom(y,l3_516,1)"), true));
     plan.push_back(Predicate(AspFluent("messagedelivered(y,m0,2)"), true));
-    plan.push_back(Predicate(AspFluent("terminate(3)"), true));
+    plan.push_back(Predicate(AspFluent("terminate(deliver3,3)"), true));
 
     plans.push_back(plan);
   }
 
-  /*{
+  { 
+    vector<Predicate> plan;
+    plan.push_back(Predicate(AspFluent("at(l3_302,1)"), false));
+    plan.push_back(Predicate(AspFluent("at(l3_300,1)"), true));
+    plan.push_back(Predicate(AspFluent("beside(o3_302_printer,1)"), false));
+    plan.push_back(Predicate(AspFluent("beside(d3_400,1)"), true));
+    plan.push_back(Predicate(AspFluent("facing(o3_302_printer,1)"), false));
+    plan.push_back(Predicate(AspFluent("facing(d3_400,1)"), true));
+    plan.push_back(Predicate(AspFluent("open(d3_400,2)"), true));
+    plan.push_back(Predicate(AspFluent("at(l3_300,3)"), false));
+    plan.push_back(Predicate(AspFluent("at(l3_400,3)"), true));
+    plan.push_back(Predicate(AspFluent("facing(d3_400,3)"), false));
+    plan.push_back(Predicate(AspFluent("beside(d3_400,4)"), false));
+    plan.push_back(Predicate(AspFluent("beside(d3_414b2,4)"), true));
+    plan.push_back(Predicate(AspFluent("facing(d3_414b2,4)"), true));
+    plan.push_back(Predicate(AspFluent("open(d3_414b2,5)"), true));
+    plan.push_back(Predicate(AspFluent("at(l3_400,6)"), false));
+    plan.push_back(Predicate(AspFluent("at(l3_414b,6)"), true));
+    plan.push_back(Predicate(AspFluent("facing(d3_414b2,6)"), false));
+    plan.push_back(Predicate(AspFluent("terminate(goto1,7)"), true));
+    
+    plans.push_back(plan);
+  }
+
+ {
     vector<Predicate> plan;
     plan.push_back(Predicate(AspFluent("beside(o3_500_printer,1)"), false));
     plan.push_back(Predicate(AspFluent("beside(d3_414a2,1)"), true));
@@ -510,23 +576,33 @@ void PlanExplainer::lfd() {
     plan.push_back(Predicate(AspFluent("at(l3_500,3)"), false));
     plan.push_back(Predicate(AspFluent("at(l3_414a,3)"), true));
     plan.push_back(Predicate(AspFluent("facing(d3_414a2,3)"), false));
-    plan.push_back(Predicate(AspFluent("terminate(4)"), true));
+    plan.push_back(Predicate(AspFluent("terminate(goto2,4)"), true));
 
     plans.push_back(plan);
-  }*/
+  }
+
+  { 
+    vector<Predicate> plan;
+    plan.push_back(Predicate(AspFluent("facing(d3_414b2,1)"), false));
+    plan.push_back(Predicate(AspFluent("at(l3_400,1)"), false));
+    plan.push_back(Predicate(AspFluent("at(l3_414b,1)"), true));
+    plan.push_back(Predicate(AspFluent("terminate(goto3,2)"), true));
+    
+    plans.push_back(plan);
+  }
 
   for (int i = 0; i < plans.size(); ++i) {
     liftPlan(plans[i]);
 
     vector<Predicate>::iterator it = plans[i].begin();
     for (; it != plans[i].end(); ++it) {
-      if (predicateMap.find(*it) == predicateMap.end()) {
+      //if ((it->fluent.getName() != "terminate") && (predicateMap.find(*it) == predicateMap.end())) {
+      if ((predicateMap.find(*it) == predicateMap.end())) {
         int index = predicateMap.size();
         predicateMap[*it] = index;
       }
     }
   }
-    
 
   {
     vector<ExplanationState> mdp = buildStateSpace(plans[0]);
@@ -569,46 +645,74 @@ void PlanExplainer::lfd() {
     explanations.push_back(explanation);
   }
 
-  /*{
+  {
     vector<ExplanationState> mdp = buildStateSpace(plans[3]);
     mdps.push_back(mdp);
 
     vector<ExplanationState> explanation;
     explanation.push_back(mdp[0]);
+    explanation.push_back(mdp[9]);
+    explanation.push_back(mdp[12]);
+    explanation.push_back(mdp[16]);
+    explanation.push_back(mdp[18]);
+
+    explanations.push_back(explanation);
+  }  
+
+  {
+    vector<ExplanationState> mdp = buildStateSpace(plans[4]);
+    mdps.push_back(mdp);
+
+    vector<ExplanationState> explanation;
+    explanation.push_back(mdp[0]);
+    explanation.push_back(mdp[2]);
     explanation.push_back(mdp[7]);
     explanation.push_back(mdp[9]);
 
     explanations.push_back(explanation);
-  }*/
-
-  /*
-  for (map<Predicate, int, PredicateComp>::iterator it = predicateMap.begin(); it != predicateMap.end(); ++it) {
-    ROS_INFO_STREAM(it->first.toString() << " " << it->second);
   }
-  */
 
-  vector<double> feature_expectation(predicateMap.size());
+  {
+    vector<ExplanationState> mdp = buildStateSpace(plans[5]);
+    mdps.push_back(mdp);
+
+    vector<ExplanationState> explanation;
+    explanation.push_back(mdp[0]);
+    explanation.push_back(mdp[3]);
+    explanation.push_back(mdp[4]);
+
+    explanations.push_back(explanation);
+  }
+
+  vector<vector<double> > feature_expectation;
 
   //calculate feature expectation for each demo
   vector<vector<ExplanationState> >::const_iterator xIt = explanations.begin();
   for (; xIt != explanations.end(); ++xIt) {
 
+    vector<double> feature_expectation_plan(predicateMap.size());
     vector<ExplanationState>::const_iterator stateIt = xIt->begin();
     for (; stateIt != xIt->end(); ++stateIt) {
       for (int i = 0; i < stateIt->features.size(); ++i) {
-        feature_expectation[i] += stateIt->features[i];
+        feature_expectation_plan[i] += stateIt->features[i];
       }
     }
-  }
 
-  //print feature expectation
-  stringstream feature_expec_ss;
-  copy(feature_expectation.begin(), feature_expectation.end(), ostream_iterator<double>(feature_expec_ss, " "));
-  ROS_INFO_STREAM("feature expectation: " << feature_expec_ss.str());
+    //print feature expectation
+    stringstream feature_expec_ss;
+    copy(feature_expectation_plan.begin(), feature_expectation_plan.end(), ostream_iterator<double>(feature_expec_ss, " "));
+    ROS_INFO_STREAM("feature expectation: " << feature_expec_ss.str());
+
+    feature_expectation.push_back(feature_expectation_plan);
+  }
 
   weights = vector<double>(predicateMap.size());
 
-  irl(mdps, feature_expectation, 200, 10, 0.3);
+  irl(mdps, feature_expectation, default_n_epochs, default_horizon, starting_learning_rate);
+
+  for (map<Predicate, int, PredicateComp>::iterator it = predicateMap.begin(); it != predicateMap.end(); ++it) {
+    ROS_INFO_STREAM(it->first.toString() << " " << it->second << " " << weights[it->second]);
+  }
 
   plan = plans[0];
   getLearnedExplanation();
@@ -616,8 +720,12 @@ void PlanExplainer::lfd() {
   getLearnedExplanation();
   plan = plans[2];
   getLearnedExplanation();
-  //plan = plans[3];
-  //getLearnedExplanation();
+  plan = plans[3];
+  getLearnedExplanation();
+  plan = plans[4];
+  getLearnedExplanation();
+  plan = plans[5];
+  getLearnedExplanation();
   
 }
 

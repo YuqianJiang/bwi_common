@@ -198,10 +198,10 @@ int main(int argc, char**argv) {
     domainDirectory += '/';
 
 //  create initial state
-  LogicalNavigation setInitialState("senseState");
+  /*LogicalNavigation setInitialState("senseState");
   while (ros::ok() && (!setInitialState.hasFinished())) {
     setInitialState.run();
-  }
+  }*/
 
   bool simulating;
   privateNode.param<bool>("simulation",simulating,false);

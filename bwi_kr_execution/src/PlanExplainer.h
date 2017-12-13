@@ -18,14 +18,16 @@ struct Predicate{
   void lift(EntityGeneralizer& entityGeneralizer);
 
   bool operator<(const Predicate& other) const throw() {
-    if (this->fluent.getTimeStep() != other.fluent.getTimeStep()) 
-      return this->fluent.getTimeStep() < other.fluent.getTimeStep();
-
-    if (this->fluent.getName() != other.fluent.getName())
-      return this->fluent.getName() < other.fluent.getName();
 
     if (this->isTrue != other.isTrue)
       return other.isTrue;
+
+    /*if (this->fluent.getTimeStep() != other.fluent.getTimeStep()) 
+      return this->fluent.getTimeStep() < other.fluent.getTimeStep();
+
+    if (this->fluent.getName() != other.fluent.getName())
+      return this->fluent.getName() < other.fluent.getName();*/
+
 
     return this->fluent < other.fluent;
 
@@ -66,6 +68,10 @@ struct PredicateComp {
       return (lhs.fluent.toString(0) < rhs.fluent.toString(0));
     }
 
+    /*if (lhs.fluent.getName() != rhs.fluent.getName()) {
+      return (lhs.fluent.getName() < rhs.fluent.getName());
+    }*/
+
     return false;
   }
 };
@@ -101,7 +107,7 @@ private:
   void lfd();
 
   void irl(const std::vector<std::vector<ExplanationState> >& mdps, 
-          const std::vector<double>& feature_expectation,
+          const std::vector<std::vector<double> >& feature_expectation,
           const int n_epochs,
           const int horizon,
           const double learning_rate);
