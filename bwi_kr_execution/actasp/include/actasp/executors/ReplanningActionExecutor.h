@@ -55,6 +55,7 @@ protected:
 	std::list<Action *> plan;
   unsigned int actionCounter;
   bool newAction;
+  unsigned int failedActionCount;
 	
 	AspKR* kr;
 	Planner *planner;

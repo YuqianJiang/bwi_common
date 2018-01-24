@@ -57,7 +57,7 @@ at(L,I) :- at(L,I-1), not -at(L,I), I>0, I=n-1.
 facing(D,I) :- facing(D,I-1), not -facing(D,I), I>0, I=n-1.
 -facing(D,I) :- -facing(D,I-1), not facing(D,I), I>0, I=n-1.
 %you can be facing only one door at a time
--facing(D2,I):- facing(D1,I), facing(D2,I-1), door(D1), door(D2), D1 != D2, I>0, I=n-1.
+-facing(O2,I):- facing(O1,I), facing(O2,I-1), O1 != O2, I>0, I=n-1.
 %-facing(D,I) :- facing(D,I-1), at(R,I), not hasdoor(R,D), I>0, I=n-1.
 % open is inertial
 open(D,I) :- open(D,I-1), not -open(D,I), I>0, I=n-1.

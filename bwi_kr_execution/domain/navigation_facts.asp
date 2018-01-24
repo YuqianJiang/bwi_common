@@ -594,4 +594,3 @@ inside(o3_514_tableb, l3_514).
 
 badDoor(d3_414a3).
 badDoor(d3_414b3).
-
