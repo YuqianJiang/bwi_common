@@ -4,14 +4,13 @@
 
 #include "CallGUI.h"
 
-#include "bwi_kr_execution/AspFluent.h"
+#include "plan_execution/AspFluent.h"
 
-#include "bwi_kr_execution/CurrentStateQuery.h"
-#include <bwi_kr_execution/UpdateFluents.h>
+#include "plan_execution/CurrentStateQuery.h"
+#include <plan_execution/UpdateFluents.h>
 #include <bwi_services/SpeakMessage.h>
 
 #include <ros/ros.h>
-#include <sound_play/sound_play.h>
 
 #include <string>
 #include <iostream>
@@ -23,6 +22,7 @@ namespace bwi_krexec {
 SearchPerson::SearchPerson() : 
             person(),
             room(),
+            object(),
             done(false),
             failed(false){
             }
@@ -37,20 +37,20 @@ void SearchPerson::run() {
   ros::NodeHandle n;
 
   //current state query
-  ros::ServiceClient currentClient = n.serviceClient<bwi_kr_execution::CurrentStateQuery> ( "current_state_query" );
+  ros::ServiceClient currentClient = n.serviceClient<plan_execution::CurrentStateQuery> ( "current_state_query" );
   currentClient.waitForExistence();
   ros::ServiceClient speakClient = n.serviceClient<bwi_services::SpeakMessage> ( "speak_message" );
   speakClient.waitForExistence();
 
-  bwi_kr_execution::AspFluent atFluent;
+  plan_execution::AspFluent atFluent;
   atFluent.name = "at";
   atFluent.timeStep = 0;
   atFluent.variables.push_back(room);
   
-  bwi_kr_execution::AspRule rule;
+  plan_execution::AspRule rule;
   rule.head.push_back(atFluent);
   
-  bwi_kr_execution::CurrentStateQuery csq;
+  plan_execution::CurrentStateQuery csq;
   csq.request.query.push_back(rule);
   
   currentClient.call(csq);
@@ -60,7 +60,7 @@ void SearchPerson::run() {
   if (at) {
 
     std::stringstream ss;
-    ss << "Is " << person << " in the room?";
+    ss << "Is " << person << " here?";
 
     bwi_services::SpeakMessage message_srv;
     message_srv.request.message = ss.str();
@@ -71,7 +71,7 @@ void SearchPerson::run() {
   options.push_back("yes");
   options.push_back("no");
 
-  CallGUI SearchPerson("searchPerson", CallGUI::CHOICE_QUESTION,  "Is " + person + " in the room " + room + "?", 60.0, options);
+  CallGUI SearchPerson("searchPerson", CallGUI::CHOICE_QUESTION,  "Is " + person + " here " + "?", 60.0, options);
   SearchPerson.run();
 
   int response = SearchPerson.getResponseIndex();
@@ -82,19 +82,29 @@ void SearchPerson::run() {
   }
   
 
-  ros::ServiceClient krClient = n.serviceClient<bwi_kr_execution::UpdateFluents> ( "update_fluents" );
+  ros::ServiceClient krClient = n.serviceClient<plan_execution::UpdateFluents> ( "update_fluents" );
   krClient.waitForExistence();
 
-  bwi_kr_execution::UpdateFluents uf;
-  bwi_kr_execution::AspFluent fluent;
-  fluent.timeStep = 0;
   person[0] = tolower(person[0]);
-  fluent.variables.push_back(person);
-  fluent.variables.push_back(room);
 
-  fluent.name = ((response == 0) ? "inside" : "-inside");
+  plan_execution::UpdateFluents uf;
 
-  uf.request.fluents.push_back(fluent);
+  plan_execution::AspFluent inside;
+  inside.timeStep = 0;
+  inside.variables.push_back(person);
+  inside.variables.push_back(room);
+  inside.name = ((response == 0) ? "inside" : "-inside");
+  uf.request.fluents.push_back(inside);
+
+  if (object[0] == 'o') {
+    plan_execution::AspFluent near;
+    near.timeStep = 0;
+    near.variables.push_back(person);
+    near.variables.push_back(object);
+    near.name = ((response == 0) ? "near" : "-near");
+    uf.request.fluents.push_back(near);
+  }
+  
   krClient.call(uf);
 
   done = true;
@@ -105,6 +115,7 @@ actasp::Action* SearchPerson::cloneAndInit(const actasp::AspFluent& fluent) cons
   SearchPerson *newAction = new SearchPerson();
   newAction->person = fluent.getParameters().at(0);
   newAction->room = fluent.getParameters().at(1);
+  newAction->object = fluent.getParameters().at(2);
   
   return newAction;
 }
@@ -113,6 +124,7 @@ std::vector<std::string> SearchPerson::getParameters() const {
   vector<string> param;
   param.push_back(person);
   param.push_back(room);
+  param.push_back(object);
   return param;
 }
 

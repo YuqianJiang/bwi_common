@@ -1,7 +1,7 @@
 
-#include "msgs_utils.h"
-#include "RemoteReasoner.h"
-#include "StaticFacts.h"
+#include "plan_execution/msgs_utils.h"
+#include "plan_execution/RemoteReasoner.h"
+#include "plan_execution/StaticFacts.h"
 #include "PlanExplainer.h"
 
 #include "actasp/action_utils.h"
@@ -12,11 +12,11 @@
 #include "actasp/action_utils.h"
 #include <actasp/reasoners/Clingo4_2.h>
 
-#include "bwi_kr_execution/ExecutePlanAction.h"
-#include "bwi_kr_execution/ComputeAndExplainPlan.h"
+#include "plan_execution/ExecutePlanAction.h"
+#include "plan_execution/ComputeAndExplainPlan.h"
 
 #include "actions/ActionFactory.h"
-#include "actions/LogicalNavigation.h"
+#include "plan_execution/LogicalAction.h"
 
 #include <actionlib/server/simple_action_server.h>
 
@@ -37,9 +37,10 @@ const bool baseline = false;
 
 using namespace std;
 using namespace bwi_krexec;
+using namespace plan_exec;
 using namespace actasp;
 
-typedef actionlib::SimpleActionServer<bwi_kr_execution::ExecutePlanAction> Server;
+typedef actionlib::SimpleActionServer<plan_execution::ExecutePlanAction> Server;
 
 
 ActionExecutor *executor;
@@ -77,7 +78,7 @@ public:
 
     explainer->setPlan(newFluents);
 
-    bwi_kr_execution::ExecutePlanFeedback planFeedback;
+    plan_execution::ExecutePlanFeedback planFeedback;
     planFeedback.plan_explanation = explainer->getRandomExplanation();
     server->publishFeedback(planFeedback);
 
@@ -92,14 +93,14 @@ private:
   PlanExplainer* explainer;
 };
 
-void executePlan(const bwi_kr_execution::ExecutePlanGoalConstPtr& plan, Server* as) {
+void executePlan(const plan_execution::ExecutePlanGoalConstPtr& plan, Server* as) {
 
   vector<AspRule> goalRules;
 
   transform(plan->aspGoal.begin(),plan->aspGoal.end(),back_inserter(goalRules),TranslateRule());
 
   //Update fluents before sending new goals
-  LogicalNavigation senseState("senseState");
+  LogicalAction senseState("senseState");
   while (!senseState.hasFinished()) {
     senseState.run();
   }
@@ -124,11 +125,11 @@ void executePlan(const bwi_kr_execution::ExecutePlanGoalConstPtr& plan, Server* 
       
       if(as->isNewGoalAvailable()) {
         goalRules.clear();
-        const bwi_kr_execution::ExecutePlanGoalConstPtr& newGoal = as->acceptNewGoal();
+        const plan_execution::ExecutePlanGoalConstPtr& newGoal = as->acceptNewGoal();
         transform(newGoal->aspGoal.begin(),newGoal->aspGoal.end(),back_inserter(goalRules),TranslateRule());
 
         //Update fluents before resending goal
-        LogicalNavigation senseState("senseState");
+        LogicalAction senseState("senseState");
         while (!senseState.hasFinished()) {
           senseState.run();
         }
@@ -150,8 +151,8 @@ void executePlan(const bwi_kr_execution::ExecutePlanGoalConstPtr& plan, Server* 
   }
 }
 
-bool computeAndExplainPlan(bwi_kr_execution::ComputeAndExplainPlan::Request  &req,
-                           bwi_kr_execution::ComputeAndExplainPlan::Response &res) {
+bool computeAndExplainPlan(plan_execution::ComputeAndExplainPlan::Request  &req,
+                           plan_execution::ComputeAndExplainPlan::Response &res) {
   vector<AspRule> goal;
   transform(req.goal.begin(),req.goal.end(),back_inserter(goal),TranslateRule());
 
@@ -198,7 +199,7 @@ int main(int argc, char**argv) {
     domainDirectory += '/';
 
 //  create initial state
-  /*LogicalNavigation setInitialState("senseState");
+  /*LogicalAction setInitialState("senseState");
   while (ros::ok() && (!setInitialState.hasFinished())) {
     setInitialState.run();
   }*/

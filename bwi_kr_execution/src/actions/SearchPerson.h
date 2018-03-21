@@ -6,8 +6,6 @@
 
 #include <ros/ros.h>
 
-#include <sound_play/SoundRequest.h>
-
 #include <string>
 
 namespace bwi_krexec {
@@ -16,7 +14,7 @@ class SearchPerson : public actasp::Action{
 public:
   SearchPerson();
 
-  int paramNumber() const {return 2;}
+  int paramNumber() const {return 3;}
   
   std::string getName() const {return "searchperson";}
   
@@ -35,6 +33,7 @@ private:
  std::vector<std::string> getParameters() const;
  std::string person;
  std::string room;
+ std::string object;
  bool done,failed;
  
 };

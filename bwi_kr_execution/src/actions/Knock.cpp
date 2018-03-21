@@ -4,9 +4,9 @@
 
 #include "CallGUI.h"
 
-#include "bwi_kr_execution/AspFluent.h"
+#include "plan_execution/AspFluent.h"
 
-#include <bwi_kr_execution/UpdateFluents.h>
+#include <plan_execution/UpdateFluents.h>
 
 #include <ros/ros.h>
 #include <bwi_services/SpeakMessage.h>
@@ -30,7 +30,7 @@ void Knock::run() {
   ros::ServiceClient speakClient = n.serviceClient<bwi_services::SpeakMessage> ( "speak_message" );
   speakClient.waitForExistence();
 
-  ros::ServiceClient updateClient = n.serviceClient<bwi_kr_execution::UpdateFluents> ( "update_fluents" );
+  ros::ServiceClient updateClient = n.serviceClient<plan_execution::UpdateFluents> ( "update_fluents" );
   updateClient.waitForExistence();
 
   std::stringstream ss;
@@ -47,8 +47,8 @@ void Knock::run() {
   CallGUI knock("knock", CallGUI::CHOICE_QUESTION, ss.str(), 20.0, options);
   knock.run();
 
-  bwi_kr_execution::UpdateFluents uf;
-  bwi_kr_execution::AspFluent fluent;
+  plan_execution::UpdateFluents uf;
+  plan_execution::AspFluent fluent;
 
   fluent.variables.push_back(door);
 
@@ -74,7 +74,6 @@ std::vector<std::string> Knock::getParameters() const {
   param.push_back(door);
   return param;
 }
-
 
 ActionFactory KnockFactory(new Knock());
   
