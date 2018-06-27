@@ -80,6 +80,10 @@ add_executable(explain_plan_experiments_node src/explain_plan_experiments.cpp)
 add_dependencies(explain_plan_experiments_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(explain_plan_experiments_node ${catkin_LIBRARIES})
 
+add_executable(food_assembly_experiment_node src/food_assembly_experiment.cpp)
+add_dependencies(food_assembly_experiment_node ${catkin_EXPORTED_TARGETS})
+target_link_libraries(food_assembly_experiment_node ${catkin_LIBRARIES})
+
 install(TARGETS
           back_and_forth_node
           between_doors
@@ -96,6 +100,6 @@ install(TARGETS
           visit_door_list_gui
           visit_and_ask_list_node
           hri_tasks_node
-          explain_plan_experiments_node
+          food_assembly_experiment_node
         RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 

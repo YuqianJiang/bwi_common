@@ -550,11 +550,15 @@ std::string Clingo4_5::makeQuery(const std::string& query,
 
   //cout << "initialTimeStep is " << initialTimeStep << " ; finalTimeStep is " << finalTimeStep << endl;
 
-  string queryPath = queryDir + fileName + ".asp";
+  //string queryPath = queryDir + fileName + ".asp";
+  string queryPath = fileName + ".asp";
 
   ofstream queryFile(queryPath.c_str());
   queryFile << query << endl;
   queryFile.close();
+
+  cout << queryPath.c_str() << endl;
+  cout << query << endl;
 
   stringstream commandLine;
 

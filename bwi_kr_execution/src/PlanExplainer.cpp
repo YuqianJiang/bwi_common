@@ -481,6 +481,7 @@ void PlanExplainer::irl(const vector<vector<ExplanationState> >& mdps,
 
 }
 
+/*
 void PlanExplainer::lfd() {
 
   vector<vector<Predicate> > plans;
@@ -813,7 +814,9 @@ string fluent2Text(const AspFluent& fluent, bool isTrue) {
 
   return "undefined predicate " + fluent.getName();
 }
+*/
 
+// generalize container
 std::string EntityGeneralizer::operator()(const std::string& variable){
   
   //if entity is found

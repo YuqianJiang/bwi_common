@@ -9,6 +9,11 @@ SET( xpexec_SRC ${xpexec_SRC}
   ${CMAKE_CURRENT_SOURCE_DIR}/PlanExplainer.cpp 
   PARENT_SCOPE)
 
+SET( xpserver_SRC ${xpserver_SRC}
+  ${CMAKE_CURRENT_SOURCE_DIR}/explain_plan_server.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/PlanExplainer.cpp 
+  PARENT_SCOPE)
+
 SET( anyexec_SRC ${anyexec_SRC}
   ${CMAKE_CURRENT_SOURCE_DIR}/any_plan_executor.cpp
   PARENT_SCOPE)

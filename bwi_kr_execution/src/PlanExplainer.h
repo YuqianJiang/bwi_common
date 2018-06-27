@@ -79,7 +79,7 @@ struct PredicateComp {
 class PlanExplainer {
 public:
   PlanExplainer(const actasp::ActionSet& actions) : isAnAction(actions) {
-    lfd();
+    //lfd();
   }
 
   void setPlan(const actasp::AnswerSet& newFluents);

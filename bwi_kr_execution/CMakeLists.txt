@@ -54,6 +54,10 @@ add_executable(explain_plan_executor_node ${xpexec_SRC})
 target_link_libraries(explain_plan_executor_node
   ${catkin_LIBRARIES} bwikractions)
 
+add_executable(explain_plan_server_node ${xpserver_SRC})
+target_link_libraries(explain_plan_server_node
+  ${catkin_LIBRARIES})
+
 add_executable(any_plan_executor_node ${anyexec_SRC})
 target_link_libraries(any_plan_executor_node
   ${catkin_LIBRARIES} bwikractions)
