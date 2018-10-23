@@ -65,7 +65,7 @@ BwiLogicalNavigator::BwiLogicalNavigator() :
   ROS_INFO("BwiLogicalNavigator: Advertising services!");
 
   ros::param::param("~door_proximity_distance", door_proximity_distance_, 2.0);
-  ros::param::param("~location_proximity_distance", location_proximity_distance_, 2.0);
+  ros::param::param("~location_proximity_distance", location_proximity_distance_, 1.0);
 
   // Make sure you publish the default map at least once so that navigation can start up! Ensure this pub is latched.
   ros::NodeHandle private_nh("~");

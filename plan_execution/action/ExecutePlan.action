@@ -11,6 +11,7 @@ string message
 ---
 int32 PLAN_CHANGED_EVENT = 1
 int32 ACTION_STARTED_EVENT = 2
-int32 ACTION_ENDED_EVENT = 3
+int32 ACTION_SUCCEEDED_EVENT = 3
+int32 ACTION_FAILED_EVENT = 3
 int32 event_type
 AspFluent[] plan

@@ -73,7 +73,13 @@ struct RosActionServerInterfaceObserver : public actasp::ExecutionObserver, publ
 
     void actionTerminated(const actasp::AspFluent &action, bool succeeded) noexcept override {
         feedback.plan.clear();
-        feedback.event_type = plan_execution::ExecutePlanFeedback::ACTION_ENDED_EVENT;
+        if (succeeded) {
+          feedback.event_type = plan_execution::ExecutePlanFeedback::ACTION_SUCCEEDED_EVENT;
+        }
+        else {
+          feedback.event_type = plan_execution::ExecutePlanFeedback::ACTION_FAILED_EVENT;
+        }
+        
         feedback.plan.push_back(plan_exec::TranslateFluent()(action));
         server.publishFeedback(feedback);
         //ros::spinOnce();

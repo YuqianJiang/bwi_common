@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+
+import rospy
+import numpy as np
+import knowledge_representation
+from plan_execution.msg import ExecutePlanActionFeedback, ExecutePlanFeedback
+
+nA = 1000
+nS = 1000
+
+# Parameters
+LEARNING_RATE_Q = 1
+LEARNING_RATE_R = 1
+DISCOUNT = 0.001
+EPSILON = 0.01
+BETA = 0.3
+
+class TMPLearner():
+	def __init__(self):
+		self.q_table = np.zeros((nS, nA))
+		self.ro_table = np.zeros((nS, nA))
+		self.current_action = None
+		self.start_time = None
+		self.state = []
+
+	def learn(self, msg):
+		#print(msg)
+
+		if (msg.feedback.event_type == ExecutePlanFeedback.ACTION_STARTED_EVENT):
+			self.start_time = msg.header.stamp
+			print("!!!!action start!!!!")
+			print(self.start_time.to_sec())
+
+		if (msg.feedback.event_type == ExecutePlanFeedback.ACTION_ENDED_EVENT):
+			if self.start_time:
+				action_duration = msg.header.stamp - self.start_time
+				print("!!!!action end!!!!")
+				print(action_duration.to_sec())
+
+def main():
+	rospy.init_node("tmp_learner")
+
+	learner = TMPLearner()
+
+	rospy.Subscriber("/plan_executor/execute_plan/feedback", ExecutePlanActionFeedback, learner.learn)
+
+	rospy.spin()
+
+if __name__ == '__main__':
+    main()
