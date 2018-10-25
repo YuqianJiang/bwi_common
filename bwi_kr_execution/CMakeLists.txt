@@ -17,6 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_srvs
 )
 
+add_subdirectory(pybind11)
+
 catkin_python_setup()
  
 catkin_package(
@@ -80,6 +82,9 @@ target_link_libraries(test_plan_executor
 add_executable(asp_formatter src/asp_formatter.cpp)
 target_link_libraries(asp_formatter ${catkin_LIBRARIES})
 
+add_executable(example src/pybind_example.cpp)
+target_link_libraries(example PRIVATE pybind11::embed)
+target_link_libraries(example ${catkin_LIBRARIES})
 
 foreach(dir domain domain_dialog domain_simulation launch)
   install(DIRECTORY ${dir}/
