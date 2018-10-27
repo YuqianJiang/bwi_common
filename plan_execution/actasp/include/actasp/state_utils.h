@@ -48,6 +48,8 @@ struct stateEquals {
   std::set<AspFluent> state;
 };  
 
+std::string encodeState(const std::set<AspFluent>& state);
+
 
 }
 

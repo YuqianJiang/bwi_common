@@ -54,4 +54,16 @@ ActionSet actionMapToSet(const std::map<std::string, Action *>& actionMap) {
   return fluents;
 }
 
+std::set<AspFluent> removeActions(const std::set<AspFluent>& fluents, const ActionSet& allActions) {
+  std::set<AspFluent> noActions;
+  remove_copy_if(fluents.begin(),fluents.end(),std::inserter(noActions, noActions.begin()),IsAnAction(allActions));
+  return noActions;
+}
+
+std::set<AspFluent> extractActions(const std::set<AspFluent>& fluents, const ActionSet& allActions) {
+  std::set<AspFluent> actions;
+  remove_copy_if(fluents.begin(),fluents.end(),std::inserter(actions, actions.begin()),not1(IsAnAction(allActions)));
+  return actions;
+}
+
 }

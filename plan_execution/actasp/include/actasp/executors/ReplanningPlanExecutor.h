@@ -1,6 +1,8 @@
 #pragma once
 
 #include <actasp/PlanExecutor.h>
+#include <actasp/PlanningObserver.h>
+#include <actasp/AnswerSet.h>
 
 #include <stdexcept>
 #include <list>
@@ -16,6 +18,18 @@ class Planner;
 class Action;
 
 class PlanningObserver;
+
+struct NotifyNewPlan {
+
+  explicit NotifyNewPlan(AnswerSet plan) : plan(std::move(plan)) {}
+
+  void operator()(PlanningObserver &observer) {
+    observer.planChanged(plan);
+  }
+
+  AnswerSet plan;
+
+};
 
 class ReplanningPlanExecutor : public PlanExecutor {
 
@@ -53,7 +67,7 @@ public:
   ~ReplanningPlanExecutor();
 
 
-private:
+protected:
   std::vector<actasp::AspRule> goalRules;
   bool isGoalReached;
   bool hasFailed;
@@ -71,7 +85,8 @@ private:
   std::list<std::reference_wrapper<ExecutionObserver>> executionObservers;
   std::list<std::reference_wrapper<PlanningObserver>> planningObservers;
 
-  void computePlan();
+private:
+  virtual void computePlan();
 
 
 };

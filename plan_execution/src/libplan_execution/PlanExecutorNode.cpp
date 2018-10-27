@@ -5,6 +5,7 @@
 #include <actasp/reasoners/Clingo.h>
 #include "actasp/executors/ReplanningPlanExecutor.h"
 #include "actasp/executors/BlindPlanExecutor.h"
+#include "actasp/executors/PetlonPlanExecutor.h"
 #include "actasp/ExecutionObserver.h"
 #include "actasp/PlanningObserver.h"
 
@@ -57,7 +58,8 @@ PlanExecutorNode::PlanExecutorNode(const string &domain_directory, map<string, A
   }
   {
     //need a pointer to the specific type for the observer
-    auto replanner = new ReplanningPlanExecutor(*planningReasoner, *planningReasoner, action_map, resourceManager);
+    //auto replanner = new ReplanningPlanExecutor(*planningReasoner, *planningReasoner, action_map, resourceManager);
+    auto replanner = new PetlonPlanExecutor(*planningReasoner, *planningReasoner, action_map, resourceManager);
     //BlindPlanExecutor *replanner = new BlindPlanExecutor(reasoner, reasoner, ActionFactory::actions());
     for (auto &observer: planning_observers) {
       replanner->addPlanningObserver(observer);

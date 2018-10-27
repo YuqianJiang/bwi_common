@@ -89,20 +89,39 @@ static std::vector<boost::filesystem::path> populateDirectory(const boost::files
   std::vector<boost::filesystem::path> outFilePaths;
   for (const boost::filesystem::path linkFile: linkFiles) {
     auto target = dirPath / linkFile.filename();
-    outFilePaths.emplace_back(target);
+    
     if (boost::filesystem::exists(target)){
+      outFilePaths.emplace_back(target);
       continue;
     }
+
+    /*try {
+      boost::filesystem::create_symlink(linkFile, target);
+    }
+    catch (boost::filesystem::filesystem_error e) {
+    }*/
+
     boost::filesystem::create_symlink(linkFile, target);
+    outFilePaths.emplace_back(target);
   }
   for (const boost::filesystem::path copyFile: copyFiles) {
     // This should silently return if there's already a file there
     auto target = dirPath / copyFile.filename();
-    outFilePaths.emplace_back(target);
+    
     if (boost::filesystem::exists(target)){
+      outFilePaths.emplace_back(target);
       continue;
     }
+
+    /*
+    try {
+      boost::filesystem::copy(copyFile, target);
+    }
+    catch (boost::filesystem::filesystem_error e) {
+    }*/
+
     boost::filesystem::copy(copyFile, target);
+    outFilePaths.emplace_back(target);
   }
   return outFilePaths;
 }

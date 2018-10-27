@@ -26,6 +26,9 @@ namespace plan_exec {
   void resetCurrentState() throw();
   
   actasp::AnswerSet computePlan(const std::vector<actasp::AspRule>& goal) const throw (std::logic_error);
+
+  actasp::AnswerSet computeOptimalPlan(const std::vector<actasp::AspRule>& goal, 
+                                      double suboptimality, bool minimum, bool filterActions) const throw (std::logic_error);
   
   actasp::GraphPolicy* computePolicy(const std::vector<actasp::AspRule>& goal, double suboptimality) const throw (std::logic_error);
   

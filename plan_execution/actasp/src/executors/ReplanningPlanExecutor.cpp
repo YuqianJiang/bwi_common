@@ -2,7 +2,6 @@
 
 #include <actasp/AspKR.h>
 #include <actasp/ExecutionObserver.h>
-#include <actasp/PlanningObserver.h>
 
 #include <iostream>
 #include <actasp/action_utils.h>
@@ -33,18 +32,6 @@ ReplanningPlanExecutor::ReplanningPlanExecutor(AspKR &reasoner,
 }
 
 ReplanningPlanExecutor::~ReplanningPlanExecutor() = default;
-
-struct NotifyNewPlan {
-
-  explicit NotifyNewPlan(AnswerSet plan) : plan(std::move(plan)) {}
-
-  void operator()(PlanningObserver &observer) {
-    observer.planChanged(plan);
-  }
-
-  AnswerSet plan;
-
-};
 
 void ReplanningPlanExecutor::computePlan() {
   isGoalReached = kr.currentStateQuery(goalRules).isSatisfied();

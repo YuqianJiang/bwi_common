@@ -118,5 +118,11 @@ std::string AspFluent::toString() const noexcept {
 	return this->toString(this->timeStep);
 }
 
+std::string AspFluent::toStringNoTimeStep() const noexcept {
+  string str = cachedBase;
+  str.pop_back();
+  return str + ")";
+}
+
 
 }

@@ -1,0 +1,4 @@
+bwi_planning_common/PlannerAtom command
+---
+bool success
+nav_msgs/Path plan

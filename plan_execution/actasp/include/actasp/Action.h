@@ -27,10 +27,12 @@ struct Action {
 
     // DEPRECATED
 	virtual Action *clone() const =0;
+
+	std::string toASP() const;
 	
 	std::string toASP(unsigned int timeStep) const;
   
-    AspFluent toFluent(unsigned int timeStep) const;
+  AspFluent toFluent(unsigned int timeStep) const;
 	
 	bool operator==(const Action *other) const {
 		return this->toASP(0) == other->toASP(0);

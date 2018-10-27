@@ -20,6 +20,10 @@ struct FilteringReasoner : public FilteringKR, public Reasoner {
     return this->Reasoner::computeAllPlans(goal,suboptimality);
   }
 
+  AnswerSet computeOptimalPlan(const std::vector<actasp::AspRule>& goal, double suboptimality, bool minimum, bool filterActions) const noexcept(false) override {
+    return this->Reasoner::computeOptimalPlan(goal,suboptimality, minimum, filterActions);
+  }
+
   ActionSet availableActions() const noexcept override {
     return this->Reasoner::availableActions();
   }

@@ -49,5 +49,38 @@ LogicalNavigation("navigate_to", ltmc),
       // TODO: Send speech for unstuck
     }
 
+    float NavigateTo::getPathCost() const {
+        ros::NodeHandle n;
+        ros::ServiceClient pathPlanClient = n.serviceClient<bwi_msgs::LogicalNavPlan>("/get_path_plan");
+        pathPlanClient.waitForExistence();
+
+        auto params = prepareGoalParameters();
+        assert(params);
+
+        bwi_msgs::LogicalNavPlan srv;
+        srv.request.command.name = name;
+        srv.request.command.value = *params;
+
+        if (pathPlanClient.call(srv)) {
+            float distance;
+            auto& poses = srv.response.plan.poses;
+
+            if (poses.size() < 1) {
+                return -1;
+            }
+
+            for (int i = 1; i < poses.size(); ++i) {
+                distance += sqrt(pow((poses[i].pose.position.x - poses[i-1].pose.position.x), 2) +
+                                pow((poses[i].pose.position.y - poses[i-1].pose.position.y), 2));
+            }
+
+            return distance;
+        }
+        else {
+            return -1;
+        }
+   
+    }
+
 
 }

@@ -7,6 +7,7 @@ find_package(catkin REQUIRED
     bwi_planning_common
     geometry_msgs
     message_generation
+    nav_msgs
     sensor_msgs
     std_msgs
 )
@@ -38,6 +39,7 @@ add_service_files(
     LEDSetStatus.srv
     LEDTestStrip.srv
     LocationAction.srv
+    LogicalNavPlan.srv
     NextLocation.srv
     QuestionDialog.srv
     ResolveChangeFloor.srv
@@ -60,7 +62,7 @@ add_action_files(
 )
 
 generate_messages(
-  DEPENDENCIES actionlib_msgs bwi_planning_common geometry_msgs sensor_msgs std_msgs
+  DEPENDENCIES actionlib_msgs bwi_planning_common geometry_msgs nav_msgs sensor_msgs std_msgs
 )
 
 catkin_package(

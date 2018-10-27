@@ -165,7 +165,7 @@ std::vector< AnswerSet > Reasoner::computeAllPlans(const std::vector<actasp::Asp
 
 }
 
-AnswerSet Reasoner::computeOptimalPlan(const std::vector<actasp::AspRule>& goal, bool filterActions, double suboptimality, bool minimum) const noexcept(false) {
+AnswerSet Reasoner::computeOptimalPlan(const std::vector<actasp::AspRule>& goal, double suboptimality, bool minimum, bool filterActions) const noexcept(false) {
   if (suboptimality < 1) {
     stringstream num;
     num << suboptimality;

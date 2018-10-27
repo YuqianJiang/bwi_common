@@ -1,5 +1,9 @@
 
 #include <actasp/state_utils.h>
+#include <iostream>
+#include <sstream>
+#include <iterator>
+#include <algorithm>
 
 namespace actasp {
 
@@ -19,6 +23,19 @@ namespace actasp {
       ++otherIt;
     }
     return true; //at this point..
+  }
+
+  std::string encodeState(const std::set<AspFluent>& state) {
+    if (state.size() == 0) return "()";
+
+    std::stringstream ss;
+    ss << "(";
+    transform(state.begin(), state.end(), std::ostream_iterator<std::string>(ss, ","), 
+              [](const AspFluent& fluent){return fluent.toStringNoTimeStep();});
+
+    std::string encoded = ss.str();
+    encoded.pop_back();
+    return encoded + ")";
   }
   
 }

@@ -31,6 +31,8 @@ public:
 	std::string toString() const noexcept;
 	std::string toString(unsigned int timeStep) const noexcept;
   std::string toString(const std::string& timeStepVar) const noexcept;
+
+  std::string toStringNoTimeStep() const noexcept;
   
   operator std::string() const { return this->toString(); } 
 

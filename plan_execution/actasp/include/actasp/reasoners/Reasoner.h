@@ -23,7 +23,7 @@ struct Reasoner : public AspKR {
   
   std::vector< AnswerSet > computeAllPlans(const std::vector<actasp::AspRule>& goal, double suboptimality) const noexcept(false) override;
 
-  AnswerSet computeOptimalPlan(const std::vector<actasp::AspRule>& goal, bool filterActions, double suboptimality, bool minimum) const noexcept(false);
+  AnswerSet computeOptimalPlan(const std::vector<actasp::AspRule>& goal, double suboptimality, bool minimum, bool filterActions) const noexcept(false);
 
   PartialPolicy* computePolicy(const std::vector<actasp::AspRule>& goal, double suboptimality) const noexcept(false) override;
   

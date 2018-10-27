@@ -6,6 +6,7 @@
 #include <bwi_msgs/UpdateObject.h>
 #include <bwi_msgs/LogicalNavigationState.h>
 #include <bwi_msgs/CheckBool.h>
+#include <bwi_msgs/LogicalNavPlan.h>
 #include <bwi_logical_translator/bwi_logical_translator.h>
 #include <actionlib/server/simple_action_server.h>
 #include <nav_msgs/Odometry.h>
@@ -44,6 +45,9 @@ protected:
     bool senseDoor(bwi_msgs::CheckBool::Request &req,
                    bwi_msgs::CheckBool::Response &res);
 
+    bool getPathPlan(bwi_msgs::LogicalNavPlan::Request &req,
+                     bwi_msgs::LogicalNavPlan::Response &res);
+
     bool approachObject(const std::string& object_name,
                         bwi_msgs::LogicalNavigationState &observations,
                         std::string &error_message);
@@ -68,6 +72,13 @@ protected:
     void publishNavigationMap(bool publish_map_with_doors = false,
                               bool wait_for_costmap_change = false);
 
+
+    bool goThroughDoor(const std::string &door_name, bwi_msgs::LogicalNavigationState &observations, std::string &error_message);
+
+    bool navigateTo(const std::string &location_name, bwi_msgs::LogicalNavigationState &observations, std::string &status);
+
+    bool getNavigatePathPlan(const std::string &location_name, nav_msgs::Path& path);
+
     float robot_x_;
     float robot_y_;
     float robot_yaw_;
@@ -82,6 +93,7 @@ protected:
     ros::ServiceServer change_floor_resolution_server_;
     ros::ServiceServer add_object_server_;
     ros::ServiceServer sense_door_server_;
+    ros::ServiceServer path_plan_server_;
 
     boost::shared_ptr<actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> > robot_controller_;
 
@@ -91,6 +103,7 @@ protected:
 
     ros::Subscriber current_level_subscriber_;
     ros::Subscriber multimap_subscriber_;
+    ros::ServiceClient get_plan_client_;
     ros::ServiceClient change_level_client_;
     bool change_level_client_available_;
     std::vector<multi_level_map_msgs::LevelMetaData> all_levels_;
@@ -111,9 +124,6 @@ protected:
 
     bool robot_controller_available_;
 
-    bool goThroughDoor(const std::string &door_name, bwi_msgs::LogicalNavigationState &observations, std::string &error_message);
-
-    bool navigateTo(const std::string &location_name, bwi_msgs::LogicalNavigationState &observations, std::string &status);
 };
 
 #endif //BWI_LOGICAL_TRANSLATOR_BWI_LOGICAL_NAVIGATOR_H

@@ -71,6 +71,11 @@ std::vector< actasp::AnswerSet > RemoteReasoner::computeAllPlans(
 
 }
 
+actasp::AnswerSet RemoteReasoner::computeOptimalPlan(const std::vector<actasp::AspRule>& goal,
+                                                    double suboptimality, bool minimum, bool filterActions) const throw (std::logic_error) {
+    return local.computeOptimalPlan(goal,suboptimality, minimum, filterActions);
+  }
+
 actasp::GraphPolicy* RemoteReasoner::computePolicy(const std::vector<actasp::AspRule>& goal, double suboptimality) const throw (std::logic_error) {
  return local.computePolicy(goal,suboptimality);
 }

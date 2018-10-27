@@ -3,6 +3,7 @@
 
 #include "LogicalNavigation.h"
 #include "../BwiResourceManager.h"
+#include <bwi_msgs/LogicalNavPlan.h>
 
 namespace bwi_krexec {
 
@@ -30,6 +31,8 @@ namespace bwi_krexec {
           auto& resource_manager_cast = dynamic_cast<BwiResourceManager&>(resource_manager);
           return std::unique_ptr<actasp::Action>(new bwi_krexec::NavigateTo(location, resource_manager_cast.ltmc));
         }
+
+        float getPathCost() const;
 
     private:
         int location_id;

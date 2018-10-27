@@ -34,6 +34,10 @@ struct IsAnAction : public std::unary_function<const AspFluent &, bool> {
   std::set<std::string> actionNames;
 };
 
+std::set<AspFluent> removeActions(const std::set<AspFluent>& fluents, const ActionSet& allActions);
+
+std::set<AspFluent> extractActions(const std::set<AspFluent>& fluents, const ActionSet& allActions);
+
 AnswerSet planToAnswerSet(const std::list<std::unique_ptr<Action>> &plan);
 
 // DEPRECATED

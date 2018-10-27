@@ -52,6 +52,7 @@
 #include <multi_level_map_msgs/MultiLevelMapData.h>
 #include <multi_level_map_utils/utils.h>
 #include <map_msgs/OccupancyGridUpdate.h>
+#include <nav_msgs/GetPlan.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <tf/message_filter.h>
@@ -98,6 +99,8 @@ BwiLogicalNavigator::BwiLogicalNavigator() :
   sense_door_server_ = nh_->advertiseService("sense_door_state",
                                              &BwiLogicalNavigator::senseDoor, this);
 
+  path_plan_server_ = nh_->advertiseService("get_path_plan", &BwiLogicalNavigator::getPathPlan, this);
+
   current_level_subscriber_ = nh_->subscribe("level_mux/current_level",
                                              1,
                                              &BwiLogicalNavigator::currentLevelHandler,
@@ -117,6 +120,9 @@ BwiLogicalNavigator::BwiLogicalNavigator() :
                                                1,
                                                &BwiLogicalNavigator::costmapUpdatesSubscriber,
                                                this);
+  get_plan_client_ = nh_->serviceClient<nav_msgs::GetPlan>("move_base/make_plan");
+
+
   global_costmap_width_ = -1;
   full_global_costmap_update_ = false;
 }
@@ -294,9 +300,6 @@ bool BwiLogicalNavigator::approachDoor(const std::string &door_name,
         tf::createQuaternionFromYaw(approach_yaw), pose.pose.orientation);
     bool success = executeNavigationGoal(pose);
 
-    // Publish the observable fluents. Since we're likely going to sense the door, make sure the no-doors map was
-    // published.
-    publishNavigationMap(false, true);
     senseState(observations);
 
     return success;
@@ -335,10 +338,6 @@ bool BwiLogicalNavigator::goThroughDoor(const std::string &door_name, bwi_msgs::
 
 
     enableStaticCostmap(true);
-
-    // Publish the observable fluents. Since we're likely going to sense the door, make sure the no-doors map was
-    // published.
-    publishNavigationMap(false, true);
     senseState(observations);
 
     return success;
@@ -508,8 +507,110 @@ bool BwiLogicalNavigator::changeFloor(const std::string &new_room,
   }
 }
 
+bool BwiLogicalNavigator::navigateTo(const std::string &location_name, bwi_msgs::LogicalNavigationState &observations,
+                                     std::string &status) {
+  if (is_door(location_name)) {
+    return approachDoor(location_name, observations, status);
+  } else {
+    return approachObject(location_name, observations, status);
+  }
+  return false;
+}
+
+bool BwiLogicalNavigator::getNavigatePathPlan(const std::string &location_name, nav_msgs::Path& plan) {
+  ROS_INFO("Calculating path plan...");
+
+  nav_msgs::GetPlan srv;
+
+  srv.request.start.header.stamp = ros::Time::now();
+  srv.request.start.header.frame_id = global_frame_id_;
+  srv.request.start.pose.position.x = robot_x_;
+  srv.request.start.pose.position.y = robot_y_;
+  tf::quaternionTFToMsg(
+      tf::createQuaternionFromYaw(robot_yaw_), srv.request.start.pose.orientation);
+
+  geometry_msgs::PoseStamped goal;
+
+  if (is_door(location_name)) {
+    bwi::Point2f approach_pt;
+    float approach_yaw = 0;
+    bool door_approachable = false;
+
+    publishNavigationMap(true, true);
+    door_approachable = getApproachPoint(location_name, bwi::Point2f(robot_x_, robot_y_), approach_pt, approach_yaw);
+
+    if (!door_approachable) {
+      return false;
+    }
+
+    srv.request.goal.header.stamp = ros::Time::now();
+    srv.request.goal.header.frame_id = global_frame_id_;
+    srv.request.goal.pose.position.x = approach_pt.x;
+    srv.request.goal.pose.position.y = approach_pt.y;
+    // std::cout << "approaching " << approach_pt.x << "," << approach_pt.y << std::endl;
+    tf::quaternionTFToMsg(
+        tf::createQuaternionFromYaw(approach_yaw), goal.pose.orientation);
+  }
+  else {
+    if (location_approach_map_.find(location_name) == location_approach_map_.end()) {
+      return false;
+    }
+
+    if (!isObjectApproachable(location_name, {robot_x_, robot_y_})) {
+      return false;
+    }
+
+    publishNavigationMap(true);
+
+    srv.request.goal.header.stamp = ros::Time::now();
+    srv.request.goal.header.frame_id = global_frame_id_;
+    srv.request.goal.pose = location_approach_map_[location_name];
+
+  }
+
+  if (get_plan_client_.call(srv)) {
+      ROS_INFO("Called make plan");
+      plan = srv.response.plan;
+      return true;
+  }
+  else {
+    return false;
+  }
+    
+}
+
+bool BwiLogicalNavigator::changeFloorResolutionHandler(bwi_msgs::ResolveChangeFloor::Request &req,
+                                                       bwi_msgs::ResolveChangeFloor::Response &res) {
+  res.success = resolveChangeFloorRequest(req.new_room, req.facing_door, res.floor_name, res.pose, res.error_message);
+  return true;
+}
+
+bool BwiLogicalNavigator::updateObject(bwi_msgs::UpdateObject::Request &req,
+                                       bwi_msgs::UpdateObject::Response &res) {
+  if (req.type == bwi_msgs::UpdateObjectRequest::UPDATE) {
+    location_approach_map_[req.object_name] = req.pose;
+    res.success = true;
+  } else if (req.type == bwi_msgs::UpdateObjectRequest::REMOVE) {
+    std::map<std::string, geometry_msgs::Pose>::iterator it = location_approach_map_.find(req.object_name);
+    if (it == location_approach_map_.end()) {
+      ROS_ERROR_STREAM("BwiLogicalNavigator::updateObject: object to remove does not exist");
+      res.success = false;
+    } else {
+      location_approach_map_.erase(it);
+      res.success = true;
+    }
+  } else {
+    ROS_ERROR_STREAM("BwiLogicalNavigator::updateObject: unknown request type");
+    res.success = false;
+  }
+}
+
 bool BwiLogicalNavigator::senseDoor(bwi_msgs::CheckBool::Request &req,
                                     bwi_msgs::CheckBool::Response &res) {
+
+  // Publish the observable fluents. Since we're going to sense the door, make sure the no-doors map was
+  // published.
+  publishNavigationMap(false, true);
 
   std::string door_name;
   bool is_facing_door = getRobotFacingDoor({robot_x_, robot_y_}, robot_yaw_, 2.0, door_name);
@@ -521,6 +622,18 @@ bool BwiLogicalNavigator::senseDoor(bwi_msgs::CheckBool::Request &req,
 
   bool door_open = isDoorOpen(door_name);
   res.value = door_open;
+  return true;
+}
+
+bool BwiLogicalNavigator::getPathPlan(bwi_msgs::LogicalNavPlan::Request &req,
+                                      bwi_msgs::LogicalNavPlan::Response &res) {
+  if (req.command.name == "navigate_to") {
+    res.success = getNavigatePathPlan(req.command.value[0], res.plan);
+  }
+  else {
+    res.success = false;
+  }
+
   return true;
 }
 
@@ -552,42 +665,6 @@ void BwiLogicalNavigator::execute(const bwi_msgs::LogicalNavGoalConstPtr &goal) 
     execute_action_server_->setAborted(res);
   }
 
-}
-
-bool BwiLogicalNavigator::changeFloorResolutionHandler(bwi_msgs::ResolveChangeFloor::Request &req,
-                                                       bwi_msgs::ResolveChangeFloor::Response &res) {
-  res.success = resolveChangeFloorRequest(req.new_room, req.facing_door, res.floor_name, res.pose, res.error_message);
-  return true;
-}
-
-bool BwiLogicalNavigator::updateObject(bwi_msgs::UpdateObject::Request &req,
-                                       bwi_msgs::UpdateObject::Response &res) {
-  if (req.type == bwi_msgs::UpdateObjectRequest::UPDATE) {
-    location_approach_map_[req.object_name] = req.pose;
-    res.success = true;
-  } else if (req.type == bwi_msgs::UpdateObjectRequest::REMOVE) {
-    std::map<std::string, geometry_msgs::Pose>::iterator it = location_approach_map_.find(req.object_name);
-    if (it == location_approach_map_.end()) {
-      ROS_ERROR_STREAM("BwiLogicalNavigator::updateObject: object to remove does not exist");
-      res.success = false;
-    } else {
-      location_approach_map_.erase(it);
-      res.success = true;
-    }
-  } else {
-    ROS_ERROR_STREAM("BwiLogicalNavigator::updateObject: unknown request type");
-    res.success = false;
-  }
-}
-
-bool BwiLogicalNavigator::navigateTo(const std::string &location_name, bwi_msgs::LogicalNavigationState &observations,
-                                     std::string &status) {
-  if (is_door(location_name)) {
-    return approachDoor(location_name, observations, status);
-  } else {
-    return approachObject(location_name, observations, status);
-  }
-  return false;
 }
 
 

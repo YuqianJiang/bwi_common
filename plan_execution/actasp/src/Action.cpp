@@ -22,6 +22,25 @@ std::string Action::toASP(unsigned int timeStep) const {
 	
 }
 
+std::string Action::toASP() const {
+	
+	stringstream nameS;
+	
+	nameS << this->getName() << "(";
+
+	std::string comma = "";
+
+	for(int i=0, size=this->getParameters().size(); i<size ; ++i) {
+		nameS << comma << this->getParameters()[i];
+		comma = ",";
+	}
+
+	nameS << ")";
+	
+	return nameS.str();
+	
+}
+
 AspFluent Action::toFluent(unsigned int timeStep) const {
   
   if(this->getParameters().size() != this->paramNumber()) {
