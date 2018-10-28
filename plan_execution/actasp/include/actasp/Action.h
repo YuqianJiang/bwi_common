@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <boost/shared_ptr.hpp>
+#include <boost/optional.hpp>
 
 namespace actasp {
 
@@ -20,7 +21,7 @@ struct Action {
 	
 	virtual bool hasFinished() const = 0;
   
-    virtual bool hasFailed() const {return false;}
+  virtual bool hasFailed() const {return false;}
 
     // DEPRECATED
 	virtual Action *cloneAndInit(const actasp::AspFluent & fluent) const = 0;
@@ -50,6 +51,7 @@ private:
 };
 
 typedef std::function<std::unique_ptr<actasp::Action>(const actasp::AspFluent &, actasp::ResourceManager &)> ActionFactory;
+typedef std::function<boost::optional<float>(const actasp::AspFluent &, actasp::ResourceManager &)> CostFactory;
 
 
 }

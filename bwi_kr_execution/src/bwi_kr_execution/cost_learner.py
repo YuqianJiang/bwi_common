@@ -20,16 +20,20 @@ DISCOUNT = 0.001
 EPSILON = 0.01
 BETA = 0.3
 
-class TMPLearner():
+class CostLearner():
 	def __init__(self):
 		self.q_table = np.zeros((nS, nA))
 		self.ro_table = np.zeros((nS, nA))
+		self.cost_table = np.zeros((nS, nA))
 		self.state_list = []
 		self.action_list = []
 		self.sa_set = set()
 		self.current_action = None
 		self.start_time = None
 		self.state = []
+		self.tables = {'cost_table' : self.cost_table,
+									 'q_table' : self.q_table,
+									 'ro_table' : self.ro_table}
 
 	def encode_state(self, state_factored):
 
@@ -48,20 +52,23 @@ class TMPLearner():
 
 		return self.action_list.index(action)
 
-	def ro_table_to_asp(self):
-		cost_file = open("/tmp/cost.asp","w")
+	def table_to_asp(self, table_name):
+		cost_file = open("/tmp/costs.asp","w")
+		table = self.tables[table_name]
 
-		qrule = "#program base.\n"
+		rule = "#program base.\n"
 		for (state,action) in self.sa_set:
 			actionname = self.action_list[action]
 			symbolicstate = self.state_list[state]
-			qrule += "ro(("+','.join(str(e) for e in symbolicstate) +"),"+actionname+","+str(int(math.floor(self.ro_table[state,action])))+").\n"
+			rule += "c(("+','.join(str(e) for e in symbolicstate) +"),"+actionname+","+str(int(math.floor(table[state,action])))+").\n"
 
-		print qrule
-		cost_file.write(qrule)
+		print rule
+		cost_file.write(rule)
 		cost_file.close()
 
 	def learn(self, state, state_next, action, reward):
+
+		reward = float(reward)
 
 		state_idx = self.encode_state(state)
 		state_next_idx = self.encode_state(state_next)
@@ -69,6 +76,8 @@ class TMPLearner():
 
 		if (state_idx, action_idx) not in self.sa_set:
 			self.sa_set.add((state_idx,action_idx))
+
+		self.cost_table[state_idx, action_idx] = reward
 
 		q_update = 0.1 * (reward - self.ro_table[state_idx,action_idx] + max(self.q_table[state_next_idx, :]) - self.q_table[state_idx, action_idx])
 		self.q_table[state_idx, action_idx] += q_update

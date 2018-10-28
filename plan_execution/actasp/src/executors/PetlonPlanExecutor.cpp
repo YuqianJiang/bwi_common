@@ -12,12 +12,14 @@ using namespace std;
 namespace actasp {
 
 PetlonPlanExecutor::PetlonPlanExecutor(AspKR &reasoner,
-                                       MultiPlanner &optimal_planner,
+                                       MultiPlanner &planner,
                                        const std::map<std::string, ActionFactory> &actionMap,
+                                       const std::map<std::string, CostFactory> &evaluableActionMap,
                                        ResourceManager &resourceManager
 ) noexcept(false) :
-    ReplanningPlanExecutor(reasoner, optimal_planner, actionMap, resourceManager),
-    optimal_planner_(optimal_planner),
+    ReplanningPlanExecutor(reasoner, planner, actionMap, resourceManager),
+    optimal_planner_(planner),
+    evaluableActionMap_(evaluableActionMap),
     evaluated_pairs_() {
 
 }
@@ -48,7 +50,12 @@ void PetlonPlanExecutor::computePlan() {
     auto actIt = plan.begin();
     
     for (int i = 0; i < answer.maxTimeStep(); ++i, ++actIt) {
-      string state = encodeState(removeActions(answer.getFluentsAtTime(i), actionMapToSet(actionMap)));
+
+      if (evaluableActionMap_.find(actIt->get()->getName()) == evaluableActionMap_.end()) {
+        continue;
+      }
+
+      string state = stateToString(removeActions(answer.getFluentsAtTime(i), actionMapToSet(actionMap)));
       string action = actIt->get()->toASP();
 
       string state_action = state + "," + action;

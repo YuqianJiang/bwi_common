@@ -11,7 +11,7 @@ eval_cost(C, n) :- c((S1, S2, S3), A, C), state(S1, n-1), state(S2, n-1), state(
 eval_cost(C, n) :- c((S1, S2, S3, S4), A, C), state(S1, n-1), state(S2, n-1), state(S3, n-1), state(S4, n-1), action(A, n), #count{S:state(S, n-1)}=4.
 
 cost(C, n) :- eval_cost(C, n).
-cost(10, n) :- #count{C:eval_cost(C, n)}=0.
+cost(0, n) :- #count{C:eval_cost(C, n)}=0.
 
 :~ cost(X,Y). [X@1,Y]
 

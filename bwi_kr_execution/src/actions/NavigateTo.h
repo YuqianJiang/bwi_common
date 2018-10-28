@@ -32,7 +32,7 @@ namespace bwi_krexec {
           return std::unique_ptr<actasp::Action>(new bwi_krexec::NavigateTo(location, resource_manager_cast.ltmc));
         }
 
-        float getPathCost() const;
+        static boost::optional<float> getEstimatedCost(const actasp::AspFluent & fluent, actasp::ResourceManager &resource_manager);
 
     private:
         int location_id;

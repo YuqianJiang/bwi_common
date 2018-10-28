@@ -4,6 +4,7 @@
 
 #include "actasp/action_utils.h"
 #include "actasp/executors/ReplanningPlanExecutor.h"
+#include "actasp/executors/PetlonPlanExecutor.h"
 #include "actasp/ExecutionObserver.h"
 #include "actasp/PlanningObserver.h"
 #include "actasp/AnswerSet.h"
@@ -16,6 +17,7 @@
 #include "observers.h"
 #include "utils.h"
 #include "BwiResourceManager.h"
+#include "ActionCostUpdater.h"
 
 #include <actionlib/server/simple_action_server.h>
 
@@ -34,8 +36,11 @@
 using namespace plan_exec;
 using namespace bwi_krexec;
 using namespace std;
+using namespace actasp;
 
 const static std::string memory_log_path = string("/tmp/villa_action_execution_logs/");
+const int MAX_N = 30;
+const int PLANNER_TIMEOUT = 10; //seconds
 
 std::string working_memory_path;
 void updateFacts() {
@@ -77,26 +82,62 @@ int main(int argc, char**argv) {
   bool simulating;
   privateNode.param<bool>("simulation",simulating,false);
 
+  working_memory_path = "/tmp/current.asp";
+  string cost_memory_path = "/tmp/costs.asp";
+
+  // Touch the memory files so the reasoner can verify that it exists
+  fstream fs;
+  fs.open(working_memory_path, ios::out);
+  fs.close();
+
+  fs.open(cost_memory_path, ios::out);
+  fs.close();
+
   unique_ptr<BwiResourceManager> resourceManager = unique_ptr<BwiResourceManager>(new BwiResourceManager());
 
-  vector<std::reference_wrapper<actasp::ExecutionObserver>> execution_observers;
-  vector<std::reference_wrapper<actasp::PlanningObserver>> planning_observers;
+  map<string, actasp::ActionFactory> &actions = bwi_krexec::real_actions;
+  if (simulating) {
+    actions = bwi_krexec::simulated_actions;
+  }
+
+  map<string, CostFactory> &evaluable_actions = bwi_krexec::evaluable_actions;
+
+  FilteringQueryGenerator *generator = Clingo::getQueryGenerator("n", domainDirectory, {working_memory_path, cost_memory_path},
+                                                                 actionMapToSet(actions),
+                                                                 PLANNER_TIMEOUT);
+  unique_ptr<actasp::AspKR> planningReasoner = unique_ptr<actasp::AspKR>(new RemoteReasoner(generator, MAX_N, actionMapToSet(actions)));
+
+
+  auto replanner = new PetlonPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, *resourceManager);
+  PlanExecutor* executor = replanner;
+
   ConsoleObserver observer;
   std::function<void()> function = std::function<void()>(updateFacts);
   KnowledgeUpdater updating_observer(function, *resourceManager);
-  execution_observers.emplace_back(observer);
-  planning_observers.emplace_back(observer);
+  ActionCostUpdater action_cost_updater(actions, evaluable_actions, *resourceManager);
 
-  execution_observers.emplace_back(updating_observer);
-  planning_observers.emplace_back(updating_observer);
+  replanner->addPlanningObserver(observer);
+  executor->addExecutionObserver(observer);
 
-  map<string, actasp::ActionFactory> &map = bwi_krexec::real_actions;
-  if (simulating) {
-    map = bwi_krexec::simulated_actions;
+  replanner->addPlanningObserver(updating_observer);
+  executor->addExecutionObserver(updating_observer);
+
+  replanner->addPlanningObserver(action_cost_updater);
+
+  PlanExecutorNode node(executor);
+
+  auto diagnosticsPath = boost::filesystem::path(domainDirectory) / "diagnostics";
+  RosActionServerInterfaceObserver* ros_observer;
+
+  if (boost::filesystem::is_directory(diagnosticsPath)) {
+    auto diagnosticReasoner = std::unique_ptr<actasp::QueryGenerator>(actasp::Clingo::getQueryGenerator("n", diagnosticsPath.string(), {working_memory_path}, {}, PLANNER_TIMEOUT));
+    ros_observer = new ExplainingRosActionServerInterfaceObserver(node.getActionServer(), std::move(diagnosticReasoner));
+  } else {
+    ros_observer = new RosActionServerInterfaceObserver(node.getActionServer());
   }
 
-  PlanExecutorNode node(domainDirectory, map, *resourceManager, execution_observers, planning_observers);
-  working_memory_path = node.working_memory_path;
+  node.setRosObserver(ros_observer);
+
   ros::spin();
 
   

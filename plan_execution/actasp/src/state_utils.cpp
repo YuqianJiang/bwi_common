@@ -25,7 +25,7 @@ namespace actasp {
     return true; //at this point..
   }
 
-  std::string encodeState(const std::set<AspFluent>& state) {
+  std::string stateToString(const std::set<AspFluent>& state) {
     if (state.size() == 0) return "()";
 
     std::stringstream ss;
@@ -33,9 +33,9 @@ namespace actasp {
     transform(state.begin(), state.end(), std::ostream_iterator<std::string>(ss, ","), 
               [](const AspFluent& fluent){return fluent.toStringNoTimeStep();});
 
-    std::string encoded = ss.str();
-    encoded.pop_back();
-    return encoded + ")";
+    std::string str = ss.str();
+    str.pop_back();
+    return str + ")";
   }
   
 }

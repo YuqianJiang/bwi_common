@@ -21,13 +21,13 @@ int main(int argc, char **argv) {
     		print(os.path.dirname(os.path.realpath(sys.path[-1])))
     	)"); */
 
-    py::object learner_class = py::module::import("tmp_learner").attr("TMPLearner");
+    py::object learner_class = py::module::import("cost_learner").attr("CostLearner");
     py::object learner = learner_class();
 
     std::vector<std::string> state = {"is_near(o3_410f)"};
     std::vector<std::string> state_next = {"is_near(d3_414a1)"};
-    learner.attr("learn")(state, state_next, "navigate_to(d3_414a1)", 100);
-    learner.attr("ro_table_to_asp")();
+    learner.attr("learn")(state, state_next, "navigate_to(d3_414a1)", 9.5);
+    learner.attr("table_to_asp")("ro_table");
 
     std::pair<int, int> state_action = {0, 0};
     std::vector<std::pair<int, int>> state_action_path = {state_action};

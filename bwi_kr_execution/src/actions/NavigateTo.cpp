@@ -31,42 +31,64 @@ LogicalNavigation("navigate_to", ltmc),
         return parameters;
     }
 
-    boost::optional<std::vector<std::string> > NavigateTo::prepareGoalParameters() const {
+    boost::optional<std::string> getLocationName(int location_id, knowledge_rep::LongTermMemoryConduit &ltmc) {
         knowledge_rep::Entity location(location_id, ltmc);
-        // FIXME: Fail more gracefully here
-        assert(location.is_valid());
+        if (!location.is_valid()) {
+            return boost::none;
+        }
+
         auto attrs = location.get_attributes("name");
-        // FIXME: Fail more gracefully here
-        assert(attrs.size() == 1);
-        vector<string> parameters;
-        parameters.push_back(attrs.at(0).get_string_value());
-        return parameters;
+        if (attrs.size() != 1) {
+            return boost::none;
+        }
+
+        return attrs.at(0).get_string_value();
+    }
+
+    boost::optional<std::vector<std::string> > NavigateTo::prepareGoalParameters() const {
+        boost::optional<std::string> name = getLocationName(location_id, ltmc);
+        if (name) {
+            vector<string> parameters;
+            parameters.push_back(*name);
+            return parameters;
+        }
+        
     }
 
     void NavigateTo::onFinished(bool success, const bwi_msgs::LogicalNavResult &result) {
-      // Allow super to update the knowledge base
-      LogicalNavigation::onFinished(success, result);
-      // TODO: Send speech for unstuck
+        // Allow super to update the knowledge base
+        LogicalNavigation::onFinished(success, result);
+        // TODO: Send speech for unstuck
     }
 
-    float NavigateTo::getPathCost() const {
+    boost::optional<float> NavigateTo::getEstimatedCost(const actasp::AspFluent & fluent, actasp::ResourceManager &resource_manager) {
+        
+        ROS_INFO_STREAM("Estimating cost for " << fluent.toStringNoTimeStep());
+
+        auto& resource_manager_cast = dynamic_cast<BwiResourceManager&>(resource_manager);
+        boost::optional<std::string> name = getLocationName(std::atoi(fluent.getParameters().at(0).c_str()), resource_manager_cast.ltmc);
+        if (! name) {
+            return boost::none;
+        }
+
+        vector<string> parameters;
+        parameters.push_back(*name);
+
         ros::NodeHandle n;
         ros::ServiceClient pathPlanClient = n.serviceClient<bwi_msgs::LogicalNavPlan>("/get_path_plan");
+
         pathPlanClient.waitForExistence();
 
-        auto params = prepareGoalParameters();
-        assert(params);
-
         bwi_msgs::LogicalNavPlan srv;
-        srv.request.command.name = name;
-        srv.request.command.value = *params;
+        srv.request.command.name = fluent.getName();
+        srv.request.command.value = parameters;
 
         if (pathPlanClient.call(srv)) {
-            float distance;
+            float distance = 0;
             auto& poses = srv.response.plan.poses;
 
-            if (poses.size() < 1) {
-                return -1;
+            if (poses.size() <= 1) {
+                return boost::none;
             }
 
             for (int i = 1; i < poses.size(); ++i) {
@@ -74,10 +96,13 @@ LogicalNavigation("navigate_to", ltmc),
                                 pow((poses[i].pose.position.y - poses[i-1].pose.position.y), 2));
             }
 
-            return distance;
+            float cost = distance * 2;
+            ROS_INFO_STREAM("Estimated cost is " << cost);
+
+            return cost;
         }
         else {
-            return -1;
+            return boost::none;
         }
    
     }

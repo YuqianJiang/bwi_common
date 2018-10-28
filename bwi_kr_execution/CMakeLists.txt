@@ -56,6 +56,7 @@ add_subdirectory(src)
 add_executable(plan_executor_node ${spexec_SRC})
 target_link_libraries(plan_executor_node
   ${catkin_LIBRARIES} bwikractions)
+target_link_libraries(plan_executor_node PRIVATE pybind11::embed)
 
 add_executable(test_action_executor_node src/test_action_executor_node.cpp)
 target_link_libraries(test_action_executor_node

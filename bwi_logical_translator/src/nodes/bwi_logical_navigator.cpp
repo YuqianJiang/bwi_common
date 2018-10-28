@@ -518,7 +518,6 @@ bool BwiLogicalNavigator::navigateTo(const std::string &location_name, bwi_msgs:
 }
 
 bool BwiLogicalNavigator::getNavigatePathPlan(const std::string &location_name, nav_msgs::Path& plan) {
-  ROS_INFO("Calculating path plan...");
 
   nav_msgs::GetPlan srv;
 
@@ -569,7 +568,6 @@ bool BwiLogicalNavigator::getNavigatePathPlan(const std::string &location_name, 
   }
 
   if (get_plan_client_.call(srv)) {
-      ROS_INFO("Called make plan");
       plan = srv.response.plan;
       return true;
   }
