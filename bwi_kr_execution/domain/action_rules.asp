@@ -9,7 +9,7 @@ is_in(self, R2, n) :- navigate_to(T, n), has_concept(T, "door"), has(R2, T), is_
 is_in(self, R1, n) :- navigate_to(T, n), is_in(T, R1).
 -is_near(self, F, n) :- navigate_to(T, n), is_near(self, F, n - 1), T != F.
 :- navigate_to(T, n), is_in(T, R1), is_in(self, R2, n - 1), not is_connected(R1, R2).
-:- navigate_to(T, n), has_concept(T, "door"), 0{has(R1, T); is_connected(R1, R2)}0, is_in(self, R2, n - 1).
+:- navigate_to(T, n), has_concept(T, "door"), 0{has(R1, T): is_connected(R1, R2)}0, is_in(self, R2, n - 1).
 
 % action open_door
 is_open(D, n) :- open_door(D, n).

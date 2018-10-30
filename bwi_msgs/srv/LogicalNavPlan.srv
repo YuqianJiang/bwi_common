@@ -1,4 +1,6 @@
 bwi_planning_common/PlannerAtom command
+bool use_robot_pose
+geometry_msgs/Pose start
 ---
 bool success
 nav_msgs/Path plan

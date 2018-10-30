@@ -50,6 +50,8 @@ struct stateEquals {
 
 std::string stateToString(const std::set<AspFluent>& state);
 
+std::set<AspFluent> filterFluents(const std::set<AspFluent>& fluents, const std::set<std::string>& fluent_names);
+
 
 }
 

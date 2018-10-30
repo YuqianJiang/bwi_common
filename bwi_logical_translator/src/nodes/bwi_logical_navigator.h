@@ -77,7 +77,10 @@ protected:
 
     bool navigateTo(const std::string &location_name, bwi_msgs::LogicalNavigationState &observations, std::string &status);
 
-    bool getNavigatePathPlan(const std::string &location_name, nav_msgs::Path& path);
+    bool getNavigatePathPlan(const geometry_msgs::Pose &start_pose, geometry_msgs::Pose &goal_pose, nav_msgs::Path& path);
+
+    bool getGoalPose(const std::string &command_name, const std::string &goal_name,
+                                    const geometry_msgs::Pose &start_pose, geometry_msgs::Pose &goal_pose);
 
     float robot_x_;
     float robot_y_;

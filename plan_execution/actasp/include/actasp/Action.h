@@ -51,7 +51,6 @@ private:
 };
 
 typedef std::function<std::unique_ptr<actasp::Action>(const actasp::AspFluent &, actasp::ResourceManager &)> ActionFactory;
-typedef std::function<boost::optional<float>(const actasp::AspFluent &, actasp::ResourceManager &)> CostFactory;
 
 
 }

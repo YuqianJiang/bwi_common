@@ -4,7 +4,8 @@
 #include <actasp/ResourceManager.h>
 #include <actasp/action_utils.h>
 #include <actasp/state_utils.h>
-#include "actions/action_registry.h"
+//#include "actions/action_registry.h"
+#include "actions/ActionCostEstimator.h"
 
 #include <ros/package.h>
 
@@ -18,10 +19,12 @@ namespace bwi_krexec {
 struct ActionCostUpdater : public actasp::PlanningObserver {
 
   explicit ActionCostUpdater(const std::map<std::string, actasp::ActionFactory> &actionMap, 
-                            const std::map<std::string, actasp::CostFactory> &evaluableActionMap, 
+                            const std::set<std::string> &evaluableActionSet, 
+                            const std::set<std::string> &stateFluentSet,
                             actasp::ResourceManager &resourceManager):
     actionMap(actionMap),
-    evaluableActionMap(evaluableActionMap),
+    evaluableActionSet(evaluableActionSet),
+    stateFluentSet(stateFluentSet),
     resourceManager(resourceManager),
     guard() {
       std::string path = ros::package::getPath("bwi_kr_execution") + "/src/bwi_kr_execution";
@@ -34,6 +37,7 @@ struct ActionCostUpdater : public actasp::PlanningObserver {
     }
 
   void planChanged(const actasp::AnswerSet &newPlan) noexcept override {
+      ActionCostEstimator estimator(resourceManager);
 
       for (int i = 0; i < newPlan.maxTimeStep(); ++i) {
         auto actions = extractActions(newPlan.getFluentsAtTime(i+1), actionMapToSet(actionMap));
@@ -44,17 +48,11 @@ struct ActionCostUpdater : public actasp::PlanningObserver {
           continue;
         }
 
-        auto actIt = evaluableActionMap.find(actions.begin()->getName());
+        if (evaluableActionSet.find(actions.begin()->getName()) != evaluableActionSet.end()) {
 
-        if (actIt != evaluableActionMap.end()) {
-          boost::optional<float> ocost = actIt->second(*actions.begin(), resourceManager);
-          if (!ocost) {
-            ROS_INFO_STREAM("Cost evaluation returned none " << i+1);
-            continue;
-          }
-          float cost = *ocost;
+          float cost = estimator.getActionCost(*actions.begin());
 
-          auto fluents = removeActions(newPlan.getFluentsAtTime(i), actionMapToSet(actionMap));
+          auto fluents = filterFluents(newPlan.getFluentsAtTime(i), stateFluentSet);
           std::vector<std::string> state;
           transform(fluents.begin(), fluents.end(), std::back_inserter(state), 
                     [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
@@ -64,9 +62,9 @@ struct ActionCostUpdater : public actasp::PlanningObserver {
 
           learner.attr("learn")(state, state_next, action, cost);
         }
-        else {
+        /*else {
           ROS_INFO_STREAM(actions.begin()->getName() << " not evaluable");
-        }
+        }*/
       }
 
       learner.attr("table_to_asp")("cost_table");
@@ -74,7 +72,8 @@ struct ActionCostUpdater : public actasp::PlanningObserver {
 
 private:
   std::map<std::string, actasp::ActionFactory> actionMap;
-  std::map<std::string, actasp::CostFactory> evaluableActionMap;
+  std::set<std::string> evaluableActionSet;
+  std::set<std::string> stateFluentSet;
   actasp::ResourceManager &resourceManager;
 
   std::map<std::string, float> cost_map_;

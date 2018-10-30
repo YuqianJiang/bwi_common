@@ -30,7 +30,20 @@ boost::optional<bwi_msgs::LogicalNavGoal> LogicalNavigation::prepareGoal() {
         goal.command.value = *params;
         return goal;
     }
-    
+}
+
+boost::optional<std::string> LogicalNavigation::getLocationName(int location_id, knowledge_rep::LongTermMemoryConduit &ltmc) {
+    knowledge_rep::Entity location(location_id, ltmc);
+    if (!location.is_valid()) {
+        return boost::none;
+    }
+
+    auto attrs = location.get_attributes("name");
+    if (attrs.size() != 1) {
+        return boost::none;
+    }
+
+    return attrs.at(0).get_string_value();
 }
 
 void LogicalNavigation::onFinished(bool succeeded, const bwi_msgs::LogicalNavResult &result) {
@@ -71,6 +84,36 @@ void LogicalNavigation::onFinished(bool succeeded, const bwi_msgs::LogicalNavRes
 void LogicalNavigation::configureWithResources(ResourceManager &resource_manager) {
   auto& cast = dynamic_cast<BwiResourceManager&>(resource_manager);
   this->ltmc = cast.ltmc;
+}
+
+nav_msgs::Path LogicalNavigation::getPathPlan(const AspFluent &fluent, const geometry_msgs::Pose &start_pose,
+                                            ResourceManager &resource_manager, bool use_robot_pose) {
+
+    auto& resource_manager_cast = dynamic_cast<BwiResourceManager&>(resource_manager);
+    boost::optional<std::string> name = getLocationName(std::atoi(fluent.getParameters().at(0).c_str()), resource_manager_cast.ltmc);
+    if (! name) {
+        return nav_msgs::Path();
+    }
+
+    vector<string> parameters;
+    parameters.push_back(*name);
+
+    ros::NodeHandle n;
+    ros::ServiceClient pathPlanClient = n.serviceClient<bwi_msgs::LogicalNavPlan>("/get_path_plan");
+
+    pathPlanClient.waitForExistence();
+
+    bwi_msgs::LogicalNavPlan srv;
+    srv.request.command.name = fluent.getName();
+    srv.request.command.value = parameters;
+    srv.request.start = start_pose;
+    srv.request.use_robot_pose = use_robot_pose;
+
+    if (pathPlanClient.call(srv) && (srv.response.success)) {
+        return srv.response.plan;
+    }
+
+    return nav_msgs::Path();
 }
 
 

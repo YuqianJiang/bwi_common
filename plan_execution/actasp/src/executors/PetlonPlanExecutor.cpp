@@ -14,12 +14,14 @@ namespace actasp {
 PetlonPlanExecutor::PetlonPlanExecutor(AspKR &reasoner,
                                        MultiPlanner &planner,
                                        const std::map<std::string, ActionFactory> &actionMap,
-                                       const std::map<std::string, CostFactory> &evaluableActionMap,
+                                       const std::set<std::string> &evaluableActionSet,
+                                       const std::set<std::string> &stateFluentSet,
                                        ResourceManager &resourceManager
 ) noexcept(false) :
     ReplanningPlanExecutor(reasoner, planner, actionMap, resourceManager),
     optimal_planner_(planner),
-    evaluableActionMap_(evaluableActionMap),
+    evaluableActionSet(evaluableActionSet),
+    stateFluentSet(stateFluentSet),
     evaluated_pairs_() {
 
 }
@@ -34,7 +36,7 @@ void PetlonPlanExecutor::computePlan() {
   bool evaluation = true;
 
   while (evaluation) {
-    AnswerSet answer = optimal_planner_.computeOptimalPlan(goalRules, 1, true, false);
+    AnswerSet answer = optimal_planner_.computeOptimalPlan(goalRules, 1.1, true, false);
     //AnswerSet answer = optimal_planner_.computePlan(goalRules);
     plan = answer.instantiateActions(actionMap, resourceManager);
 
@@ -51,16 +53,14 @@ void PetlonPlanExecutor::computePlan() {
     
     for (int i = 0; i < answer.maxTimeStep(); ++i, ++actIt) {
 
-      if (evaluableActionMap_.find(actIt->get()->getName()) == evaluableActionMap_.end()) {
+      if (evaluableActionSet.find(actIt->get()->getName()) == evaluableActionSet.end()) {
         continue;
       }
 
-      string state = stateToString(removeActions(answer.getFluentsAtTime(i), actionMapToSet(actionMap)));
+      string state = stateToString(filterFluents(answer.getFluentsAtTime(i), stateFluentSet));
       string action = actIt->get()->toASP();
 
       string state_action = state + "," + action;
-
-      cout << state_action << endl;
 
       if (evaluated_pairs_.find(state_action) == evaluated_pairs_.end()) {
         evaluation = true;

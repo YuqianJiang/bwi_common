@@ -7,6 +7,7 @@
 
 #include <actionlib/client/simple_action_client.h>
 #include <bwi_msgs/LogicalNavAction.h>
+#include <bwi_msgs/LogicalNavPlan.h>
 
 namespace bwi_krexec {
 typedef plan_exec::RosAction<bwi_msgs::LogicalNavAction, bwi_msgs::LogicalNavGoal, bwi_msgs::LogicalNavResult> LogicalNavigationRosAction;
@@ -20,6 +21,11 @@ public:
 	virtual boost::optional<std::vector<std::string> > prepareGoalParameters() const = 0;
 
   void configureWithResources(actasp::ResourceManager &resource_manager);
+
+  static boost::optional<std::string> getLocationName(int location_id, knowledge_rep::LongTermMemoryConduit &ltmc);
+
+  static nav_msgs::Path getPathPlan(const actasp::AspFluent &fluent, const geometry_msgs::Pose &start_pose,
+  																actasp::ResourceManager &resource_manager, bool use_robot_pose = false);
 
 	
 protected:

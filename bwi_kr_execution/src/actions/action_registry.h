@@ -23,10 +23,6 @@ static std::map <std::string, actasp::ActionFactory> simulated_actions = {
   {"change_floor", bwi_krexec::ChangeFloor::create},
 };
 
-static std::map <std::string, actasp::CostFactory> evaluable_actions = {
-        {"navigate_to", bwi_krexec::NavigateTo::getEstimatedCost}
-};
-
 }
 
 #endif

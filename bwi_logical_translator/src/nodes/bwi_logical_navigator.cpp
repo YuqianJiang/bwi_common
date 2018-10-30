@@ -517,55 +517,87 @@ bool BwiLogicalNavigator::navigateTo(const std::string &location_name, bwi_msgs:
   return false;
 }
 
-bool BwiLogicalNavigator::getNavigatePathPlan(const std::string &location_name, nav_msgs::Path& plan) {
+bool BwiLogicalNavigator::getGoalPose(const std::string &command_name, const std::string &goal_name,
+                                      const geometry_msgs::Pose &start_pose, geometry_msgs::Pose &goal_pose) {
+  if (command_name == "navigate_to") {
+    if (is_door(goal_name)) {
+      bwi::Point2f approach_pt;
+      float approach_yaw = 0;
+      bool door_approachable = false;
 
-  nav_msgs::GetPlan srv;
+      publishNavigationMap(true, true);
+      door_approachable = getApproachPoint(goal_name, bwi::Point2f(start_pose.position.x, start_pose.position.y), approach_pt, approach_yaw);
 
-  srv.request.start.header.stamp = ros::Time::now();
-  srv.request.start.header.frame_id = global_frame_id_;
-  srv.request.start.pose.position.x = robot_x_;
-  srv.request.start.pose.position.y = robot_y_;
-  tf::quaternionTFToMsg(
-      tf::createQuaternionFromYaw(robot_yaw_), srv.request.start.pose.orientation);
+      if (!door_approachable) {
+        return false;
+      }
 
-  geometry_msgs::PoseStamped goal;
+      goal_pose.position.x = approach_pt.x;
+      goal_pose.position.y = approach_pt.y;
 
-  if (is_door(location_name)) {
+      tf::quaternionTFToMsg(
+        tf::createQuaternionFromYaw(approach_yaw), goal_pose.orientation);
+
+      return true;
+
+    }
+    else {
+      if (location_approach_map_.find(goal_name) == location_approach_map_.end()) {
+        return false;
+      }
+
+      publishNavigationMap(true, true);
+      if (!isObjectApproachable(goal_name, {start_pose.position.x, start_pose.position.y})) {
+        return false;
+      }
+
+      goal_pose = location_approach_map_[goal_name];
+
+      return true;
+
+    }
+  }
+  else if (command_name == "go_through") {
     bwi::Point2f approach_pt;
     float approach_yaw = 0;
     bool door_approachable = false;
 
-    publishNavigationMap(true, true);
-    door_approachable = getApproachPoint(location_name, bwi::Point2f(robot_x_, robot_y_), approach_pt, approach_yaw);
+    publishNavigationMap(false, true);
+    door_approachable = getThroughDoorPoint(goal_name, bwi::Point2f(start_pose.position.x, start_pose.position.y),
+                                            approach_pt, approach_yaw);
+
 
     if (!door_approachable) {
       return false;
     }
 
-    srv.request.goal.header.stamp = ros::Time::now();
-    srv.request.goal.header.frame_id = global_frame_id_;
-    srv.request.goal.pose.position.x = approach_pt.x;
-    srv.request.goal.pose.position.y = approach_pt.y;
-    // std::cout << "approaching " << approach_pt.x << "," << approach_pt.y << std::endl;
+    goal_pose.position.x = approach_pt.x;
+    goal_pose.position.y = approach_pt.y;
+
     tf::quaternionTFToMsg(
-        tf::createQuaternionFromYaw(approach_yaw), goal.pose.orientation);
-  }
-  else {
-    if (location_approach_map_.find(location_name) == location_approach_map_.end()) {
-      return false;
-    }
+        tf::createQuaternionFromYaw(approach_yaw), goal_pose.orientation);
 
-    if (!isObjectApproachable(location_name, {robot_x_, robot_y_})) {
-      return false;
-    }
-
-    publishNavigationMap(true);
-
-    srv.request.goal.header.stamp = ros::Time::now();
-    srv.request.goal.header.frame_id = global_frame_id_;
-    srv.request.goal.pose = location_approach_map_[location_name];
+    return true;
 
   }
+
+  return false;
+
+}
+
+bool BwiLogicalNavigator::getNavigatePathPlan(const geometry_msgs::Pose &start_pose, geometry_msgs::Pose &goal_pose, nav_msgs::Path& plan) {
+
+  nav_msgs::GetPlan srv;
+
+  srv.request.start.header.stamp = ros::Time::now();
+  srv.request.start.header.frame_id = global_frame_id_;
+  srv.request.start.pose = start_pose;
+
+  geometry_msgs::PoseStamped goal;
+
+  srv.request.goal.header.stamp = ros::Time::now();
+  srv.request.goal.header.frame_id = global_frame_id_;
+  srv.request.goal.pose = goal_pose;
 
   if (get_plan_client_.call(srv)) {
       plan = srv.response.plan;
@@ -625,12 +657,27 @@ bool BwiLogicalNavigator::senseDoor(bwi_msgs::CheckBool::Request &req,
 
 bool BwiLogicalNavigator::getPathPlan(bwi_msgs::LogicalNavPlan::Request &req,
                                       bwi_msgs::LogicalNavPlan::Response &res) {
-  if (req.command.name == "navigate_to") {
-    res.success = getNavigatePathPlan(req.command.value[0], res.plan);
+
+  geometry_msgs::Pose start;
+  if (req.use_robot_pose) {
+
+    start.position.x = robot_x_;
+    start.position.y = robot_y_;
+
+    tf::quaternionTFToMsg(
+        tf::createQuaternionFromYaw(robot_yaw_), start.orientation);
   }
   else {
-    res.success = false;
+    start = req.start;
   }
+
+  geometry_msgs::Pose goal_pose;
+  if (!getGoalPose(req.command.name, req.command.value[0], start, goal_pose)) {
+    res.success = false;
+    return true;
+  }
+  
+  res.success = getNavigatePathPlan(start, goal_pose, res.plan);
 
   return true;
 }

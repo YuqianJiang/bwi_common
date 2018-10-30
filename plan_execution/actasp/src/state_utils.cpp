@@ -37,6 +37,15 @@ namespace actasp {
     str.pop_back();
     return str + ")";
   }
+
+  std::set<AspFluent> filterFluents(const std::set<AspFluent>& fluents, const std::set<std::string>& fluent_names) {
+    std::set<AspFluent> filtered;
+
+    copy_if(fluents.begin(), fluents.end(), std::inserter(filtered, filtered.begin()),
+              [fluent_names](const AspFluent& fluent){return fluent_names.find(fluent.getName()) != fluent_names.end();});
+
+    return filtered;
+  }
   
 }
 

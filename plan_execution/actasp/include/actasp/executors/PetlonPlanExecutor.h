@@ -12,7 +12,8 @@ public:
   PetlonPlanExecutor(AspKR &reasoner,
                      MultiPlanner &planner,
                      const std::map<std::string, ActionFactory> &actionMap,
-                     const std::map<std::string, CostFactory> &evaluableActionMap,
+                     const std::set<std::string> &evaluableActionSet,
+                     const std::set<std::string> &stateFluentSet,
                      actasp::ResourceManager &resourceManager
   ) noexcept(false);
 
@@ -25,7 +26,8 @@ private:
 
   MultiPlanner &optimal_planner_;
   std::set<std::string> evaluated_pairs_;
-  std::map<std::string, CostFactory> evaluableActionMap_;
+  std::set<std::string> evaluableActionSet;
+  std::set<std::string> stateFluentSet;
 
 
 };

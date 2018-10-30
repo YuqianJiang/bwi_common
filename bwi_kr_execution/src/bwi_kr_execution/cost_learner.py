@@ -62,7 +62,7 @@ class CostLearner():
 			symbolicstate = self.state_list[state]
 			rule += "c(("+','.join(str(e) for e in symbolicstate) +"),"+actionname+","+str(int(math.floor(table[state,action])))+").\n"
 
-		print rule
+		#print rule
 		cost_file.write(rule)
 		cost_file.close()
 

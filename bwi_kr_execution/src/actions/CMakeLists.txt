@@ -1,6 +1,7 @@
 
 
 SET( bwikractions_SRC ${KREXEC_SRC}
+	${CMAKE_CURRENT_SOURCE_DIR}/ActionCostEstimator.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/AskPerson.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/DeliverMessage.cpp
 	#${CMAKE_CURRENT_SOURCE_DIR}/CallElevator.cpp

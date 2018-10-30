@@ -100,7 +100,9 @@ int main(int argc, char**argv) {
     actions = bwi_krexec::simulated_actions;
   }
 
-  map<string, CostFactory> &evaluable_actions = bwi_krexec::evaluable_actions;
+  set<string> evaluable_actions = {"navigate_to", "go_through"};
+
+  set<string> state_fluents = {"is_in", "is_near"};
 
   FilteringQueryGenerator *generator = Clingo::getQueryGenerator("n", domainDirectory, {working_memory_path, cost_memory_path},
                                                                  actionMapToSet(actions),
@@ -108,13 +110,13 @@ int main(int argc, char**argv) {
   unique_ptr<actasp::AspKR> planningReasoner = unique_ptr<actasp::AspKR>(new RemoteReasoner(generator, MAX_N, actionMapToSet(actions)));
 
 
-  auto replanner = new PetlonPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, *resourceManager);
+  auto replanner = new PetlonPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager);
   PlanExecutor* executor = replanner;
 
   ConsoleObserver observer;
   std::function<void()> function = std::function<void()>(updateFacts);
   KnowledgeUpdater updating_observer(function, *resourceManager);
-  ActionCostUpdater action_cost_updater(actions, evaluable_actions, *resourceManager);
+  ActionCostUpdater action_cost_updater(actions, evaluable_actions, state_fluents, *resourceManager);
 
   replanner->addPlanningObserver(observer);
   executor->addExecutionObserver(observer);

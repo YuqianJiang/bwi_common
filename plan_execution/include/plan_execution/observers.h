@@ -26,7 +26,7 @@ struct ConsoleObserver : public actasp::ExecutionObserver, public actasp::Planni
     void planChanged(const actasp::AnswerSet &newPlan) noexcept override {
         std::stringstream planStream;
 
-        ROS_INFO_STREAM("plan size: " << newPlan.getFluents().size());
+        ROS_INFO_STREAM("plan size: " << newPlan.maxTimeStep());
 
         copy(newPlan.getFluents().begin(), newPlan.getFluents().end(), std::ostream_iterator<std::string>(planStream, " "));
 
