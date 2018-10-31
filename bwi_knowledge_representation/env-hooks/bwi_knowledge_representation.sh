@@ -24,6 +24,9 @@ prepare_knowledge_bwi_sim() {
     yaml_files_path=$(rospack find utexas_gdc)/maps/simulation/3ne &&
     rosrun knowledge_representation populate_with_map $yaml_files_path
 
+    map_files_path=$(rospack find utexas_gdc)/maps/simulation/3ne &&
+    rosrun bwi_knowledge_representation compute_euclidean_distance $map_files_path
+
     #Load additional knowledge
     knowledge_file_path=$(rospack find utexas_gdc)/knowledge/bwi.yaml &&
     rosrun knowledge_representation populate_with_knowledge $knowledge_file_path

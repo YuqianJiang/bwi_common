@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+import knowledge_representation
+from knowledge_representation import LongTermMemoryConduit
+import argparse
+import sys
+import os
+import yaml
+import math
+
+def compute_cost_table(ltmc, files_path):
+    doors_file_path = os.path.join(files_path, "doors.yaml")
+    if not os.path.isfile(doors_file_path):
+        print(
+                "Doors file not found at " + doors_file_path + ".")
+        exit(1)
+    # FIXME: This file's name is outdated. It should eventually be changed to locations.yaml when the 
+    # annotation tool is updated
+    locations_file_path = os.path.join(files_path, "objects.yaml")
+    if not os.path.isfile(locations_file_path):
+        print(
+                "Locations file not found at " + locations_file_path + ".")
+        exit(1)
+
+    doors_data = read_yaml_from_file(doors_file_path)
+    locations_data = read_yaml_from_file(locations_file_path)
+
+    positions = {}
+
+    for location in locations_data:
+        location_entity = ltmc.get_instance_named(location["name"])
+        positions[location_entity.entity_id] = location["point"]
+
+    for door in doors_data:
+        door_entity = ltmc.get_instance_named(door["name"])
+        pt_1 = door["door_corner_pt_1"]
+        pt_2 = door["door_corner_pt_2"]
+        positions[door_entity.entity_id] = [(pt_1[0]+pt_2[0])/2, (pt_1[1]+pt_2[1])/2]
+
+    table = {}
+
+    for e1 in positions:
+        for e2 in positions:
+            if e1 != e2:
+                p1 = positions[e1]
+                p2 = positions[e2]
+                dist = int(round(math.sqrt((p1[0]-p2[0])*(p1[0]-p2[0]) + (p1[1]-p2[1])*(p1[1]-p2[1]))))
+                table[(e1,e2)] = dist
+                table[(e2,e1)] = dist
+
+    return table
+
+
+def read_yaml_from_file(file_path):
+    with open(file_path, 'r') as stream:
+        try:
+            contents = yaml.load(stream)
+            return contents
+        except yaml.YAMLError:
+            print("File found at " + file_path + ", but cannot be parsed by YAML parser.")
+            exit(1)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("files_path", type=str)
+    args = parser.parse_args()
+
+    ltmc = knowledge_representation.get_default_ltmc()
+    cost_file = open(os.path.join(args.files_path, "distances.asp"),"w+")
+    table = compute_cost_table(ltmc, args.files_path)
+
+    rule = "#program base.\n"
+    for pair in table:
+        rule += "dist(" + str(pair[0]) + "," + str(pair[1]) + "," + str(table[pair]) + ").\n"
+
+    cost_file.write(rule)
+    cost_file.close()
+
+
+if __name__ == "__main__":
+    main()

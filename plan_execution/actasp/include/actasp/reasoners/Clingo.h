@@ -28,6 +28,30 @@ struct Clingo {
 		assert(false);
 	}
 
+	static FilteringQueryGenerator* getQueryGenerator(const std::string& incrementalVar,
+          const std::string& linkDir,
+          const std::vector<std::string>& otherLinkFiles,
+					const std::vector<std::string>& copyFiles,
+          const ActionSet& actions,
+          unsigned int max_time = 0) {
+
+		std::string ros_distro = std::getenv("ROS_DISTRO");
+
+		if (ros_distro == "indigo") {
+			auto indigoPath = linkDir.substr(0, linkDir.size()-1)+"_indigo/";
+			std::vector<std::string> linkFiles = dirToAllAspFilesInDir(indigoPath);
+			copy(otherLinkFiles.begin(), otherLinkFiles.end(), std::back_inserter(linkFiles));
+			return new Clingo4_2(incrementalVar, linkFiles, copyFiles, actions, max_time);
+		}
+
+		if (ros_distro == "kinetic") {
+			std::vector<std::string> linkFiles = dirToAllAspFilesInDir(linkDir);
+			copy(otherLinkFiles.begin(), otherLinkFiles.end(), std::back_inserter(linkFiles));
+			return new Clingo4_5(incrementalVar, linkFiles, copyFiles, actions, max_time);
+		}
+		assert(false);
+	}
+
 };
 
 }

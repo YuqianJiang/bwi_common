@@ -33,13 +33,15 @@ def populate(ltmc, files_path):
     door_con.add_attribute_entity("is_a", location_con)
     room_con = ltmc.get_concept("room")
 
-    for location in locations_data:
-        location_entity = location_con.create_instance(location["name"])
-
     room_name_to_entity = {}
     for room, _ in connectivity_data.items():
         room_entity = room_con.create_instance(room)
         room_name_to_entity[room] = room_entity
+        room_entity.add_attribute_entity("is_connected", room_entity)
+
+    for location in locations_data:
+        location_entity = location_con.create_instance(location["name"])
+        location_entity.add_attribute_entity("is_in", room_name_to_entity[location["is_in"]])
 
     # Rooms connected by doors are not directly connected. Remove
     # them from the connectivity map

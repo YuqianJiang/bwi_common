@@ -60,7 +60,7 @@ class CostLearner():
 		for (state,action) in self.sa_set:
 			actionname = self.action_list[action]
 			symbolicstate = self.state_list[state]
-			rule += "c(("+','.join(str(e) for e in symbolicstate) +"),"+actionname+","+str(int(math.floor(table[state,action])))+").\n"
+			rule += "c(("+','.join(str(e) for e in symbolicstate) +"),"+actionname+","+str(int(round(table[state,action])))+").\n"
 
 		#print rule
 		cost_file.write(rule)
@@ -95,7 +95,7 @@ class CostLearner():
 
 		plan_quality = 0
 		for (state,action) in path:
-			plan_quality += int(math.floor(self.ro_table[state, action]))
+			plan_quality += int(round(self.ro_table[state, action]))
 
 		constraint_file = open("/tmp/constraint.asp","w")
 

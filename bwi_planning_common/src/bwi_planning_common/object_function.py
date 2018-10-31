@@ -112,6 +112,7 @@ class ObjectFunction(object):
             object_dict = {}
             object_dict["name"] = object_name
             object_dict["point"] = [object_location.x(), object_location.y(), -object.orientation]
+            object_dict["is_in"] = self.location_function.getLocationNameFromPoint(object.location)
             out_list.append(object_dict)
 
         stream = open(self.object_file, 'w')

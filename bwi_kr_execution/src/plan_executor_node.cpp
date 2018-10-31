@@ -84,6 +84,7 @@ int main(int argc, char**argv) {
 
   working_memory_path = "/tmp/current.asp";
   string cost_memory_path = "/tmp/costs.asp";
+  string distance_path = ros::package::getPath("utexas_gdc") + "/maps/simulation/3ne/distances.asp";
 
   // Touch the memory files so the reasoner can verify that it exists
   fstream fs;
@@ -104,9 +105,10 @@ int main(int argc, char**argv) {
 
   set<string> state_fluents = {"is_in", "is_near"};
 
-  FilteringQueryGenerator *generator = Clingo::getQueryGenerator("n", domainDirectory, {working_memory_path, cost_memory_path},
-                                                                 actionMapToSet(actions),
-                                                                 PLANNER_TIMEOUT);
+  FilteringQueryGenerator *generator = Clingo::getQueryGenerator("n", domainDirectory, {distance_path},
+                                                                {working_memory_path, cost_memory_path},
+                                                                actionMapToSet(actions),
+                                                                PLANNER_TIMEOUT);
   unique_ptr<actasp::AspKR> planningReasoner = unique_ptr<actasp::AspKR>(new RemoteReasoner(generator, MAX_N, actionMapToSet(actions)));
 
 
