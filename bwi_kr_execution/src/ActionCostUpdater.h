@@ -16,6 +16,8 @@ namespace py = pybind11;
 
 namespace bwi_krexec {
 
+#pragma GCC visibility push(hidden)
+
 struct ActionCostUpdater : public actasp::PlanningObserver {
 
   explicit ActionCostUpdater(const std::map<std::string, actasp::ActionFactory> &actionMap, 
@@ -81,5 +83,6 @@ private:
   py::scoped_interpreter guard;
 
 };
+#pragma GCC visibility pop
 
 }

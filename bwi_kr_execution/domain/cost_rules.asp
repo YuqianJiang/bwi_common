@@ -18,7 +18,7 @@ cost(C, n) :- eval_cost(C, n).
 cost(C, n) :- default_cost(C, n), #count{C1:eval_cost(C1, n)}=0.
 cost(5, n) :- #count{C1:eval_cost(C1, n); C2:default_cost(C2,n)}=0.
 
-:~ cost(X,Y). [X@1,Y]
+%:~ cost(X,Y). [X@1,Y]
 
 #show cost/2.
 #show default_cost/2.

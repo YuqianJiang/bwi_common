@@ -5,6 +5,7 @@
 #include "actasp/action_utils.h"
 #include "actasp/executors/ReplanningPlanExecutor.h"
 #include "actasp/executors/PetlonPlanExecutor.h"
+#include "actasp/executors/PeorlPlanExecutor.h"
 #include "actasp/ExecutionObserver.h"
 #include "actasp/PlanningObserver.h"
 #include "actasp/AnswerSet.h"
@@ -18,6 +19,7 @@
 #include "utils.h"
 #include "BwiResourceManager.h"
 #include "ActionCostUpdater.h"
+#include "PeorlCostLearner.h"
 
 #include <actionlib/server/simple_action_server.h>
 
@@ -40,7 +42,7 @@ using namespace actasp;
 
 const static std::string memory_log_path = string("/tmp/villa_action_execution_logs/");
 const int MAX_N = 30;
-const int PLANNER_TIMEOUT = 10; //seconds
+const int PLANNER_TIMEOUT = 3; //seconds
 
 std::string working_memory_path;
 void updateFacts() {
@@ -84,6 +86,7 @@ int main(int argc, char**argv) {
 
   working_memory_path = "/tmp/current.asp";
   string cost_memory_path = "/tmp/costs.asp";
+  string constraint_path = "/tmp/constraint.asp";
   string distance_path = ros::package::getPath("utexas_gdc") + "/maps/simulation/3ne/distances.asp";
 
   // Touch the memory files so the reasoner can verify that it exists
@@ -92,6 +95,9 @@ int main(int argc, char**argv) {
   fs.close();
 
   fs.open(cost_memory_path, ios::out);
+  fs.close();
+
+  fs.open(constraint_path, ios::out);
   fs.close();
 
   unique_ptr<BwiResourceManager> resourceManager = unique_ptr<BwiResourceManager>(new BwiResourceManager());
@@ -106,19 +112,23 @@ int main(int argc, char**argv) {
   set<string> state_fluents = {"is_in", "is_near"};
 
   FilteringQueryGenerator *generator = Clingo::getQueryGenerator("n", domainDirectory, {distance_path},
-                                                                {working_memory_path, cost_memory_path},
+                                                                {working_memory_path, cost_memory_path, constraint_path},
                                                                 actionMapToSet(actions),
                                                                 PLANNER_TIMEOUT);
   unique_ptr<actasp::AspKR> planningReasoner = unique_ptr<actasp::AspKR>(new RemoteReasoner(generator, MAX_N, actionMapToSet(actions)));
 
+  //auto replanner = new PetlonPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager);
 
-  auto replanner = new PetlonPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager);
+  unique_ptr<TaskPlanTracker> tracker = unique_ptr<TaskPlanTracker>(new TaskPlanTracker());
+  auto replanner = new PeorlPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager, *tracker);
+  
   PlanExecutor* executor = replanner;
 
   ConsoleObserver observer;
   std::function<void()> function = std::function<void()>(updateFacts);
   KnowledgeUpdater updating_observer(function, *resourceManager);
-  ActionCostUpdater action_cost_updater(actions, evaluable_actions, state_fluents, *resourceManager);
+  //ActionCostUpdater action_cost_updater(actions, evaluable_actions, state_fluents, *resourceManager);
+  PeorlCostLearner cost_learner(actions, evaluable_actions, state_fluents, *resourceManager, *tracker);
 
   replanner->addPlanningObserver(observer);
   executor->addExecutionObserver(observer);
@@ -126,7 +136,9 @@ int main(int argc, char**argv) {
   replanner->addPlanningObserver(updating_observer);
   executor->addExecutionObserver(updating_observer);
 
-  replanner->addPlanningObserver(action_cost_updater);
+  //replanner->addPlanningObserver(action_cost_updater);
+  replanner->addPlanningObserver(cost_learner);
+  replanner->addExecutionObserver(cost_learner);
 
   PlanExecutorNode node(executor);
 

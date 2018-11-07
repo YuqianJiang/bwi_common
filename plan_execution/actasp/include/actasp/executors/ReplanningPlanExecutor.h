@@ -43,7 +43,7 @@ public:
 
   using PlanExecutor::setGoal;
 
-  void setGoal(const std::vector<actasp::AspRule> &goalRules) noexcept;
+  virtual void setGoal(const std::vector<actasp::AspRule> &goalRules) noexcept;
 
   bool goalReached() const noexcept {
     return isGoalReached;

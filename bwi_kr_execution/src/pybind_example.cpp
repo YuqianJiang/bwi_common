@@ -29,8 +29,8 @@ int main(int argc, char **argv) {
     learner.attr("learn")(state, state_next, "navigate_to(d3_414a1)", 9.5);
     learner.attr("table_to_asp")("ro_table");
 
-    std::pair<int, int> state_action = {0, 0};
-    std::vector<std::pair<int, int>> state_action_path = {state_action};
+    std::pair<std::vector<std::string>, std::string> state_action = {{"is_near(o3_410f)"}, "navigate_to(d3_414a1)"};
+    std::vector<std::pair<std::vector<std::string>, std::string>> state_action_path = {state_action};
     learner.attr("constrain_plan_quality")(state_action_path);
 
 }

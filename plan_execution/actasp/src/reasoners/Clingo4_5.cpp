@@ -531,7 +531,7 @@ std::string Clingo4_5::makeQuery(const std::string &query, unsigned int initialT
   iterations << "-cimin=" << initialTimeStep;
   iterations << " -cimax=" << finalTimeStep;
 
-  commandLine << "clingo --warn no-atom-undefined " << iterations.str() << " ";
+  commandLine << "clingo5 --warn no-atom-undefined " << iterations.str() << " "; //TODO: make a Clingo5 class
   for (const path &queryDirFile: queryDirFiles) {
     commandLine << queryDirFile.string() << " ";
   }

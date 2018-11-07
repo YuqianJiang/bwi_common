@@ -28,8 +28,6 @@ class CostLearner():
 		self.state_list = []
 		self.action_list = []
 		self.sa_set = set()
-		self.current_action = None
-		self.start_time = None
 		self.state = []
 		self.tables = {'cost_table' : self.cost_table,
 									 'q_table' : self.q_table,
@@ -95,11 +93,19 @@ class CostLearner():
 
 		plan_quality = 0
 		for (state,action) in path:
-			plan_quality += int(round(self.ro_table[state, action]))
+			state_idx = self.encode_state(state)
+			action_idx = self.encode_action(action)
+			plan_quality += int(round(self.ro_table[state_idx, action_idx]))
 
 		constraint_file = open("/tmp/constraint.asp","w")
 
-		rule = "#program check(n).\n" + "#external query(n).\n"
-		rule += ":- C <= " + str(plan_quality) + ", cost(C,n), query(n).\n"
+		#rule = "#program check(n).\n" + "#external query(n).\n"
+		rule = "#program step(n).\n"
+		rule += ":- C >= " + str(plan_quality) + ", C = #sum{C1:cost(C1,I)}.\n"
 		constraint_file.write(rule)
+		constraint_file.close()
+
+	def clear_constraint(self):
+
+		constraint_file = open("/tmp/constraint.asp","w")
 		constraint_file.close()

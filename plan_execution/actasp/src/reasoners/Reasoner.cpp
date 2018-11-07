@@ -63,7 +63,7 @@ struct fluent2Rule {
 }
 
 AnswerSet Reasoner::computePlan(const std::vector<actasp::AspRule>& goal) const noexcept(false) {
-  list<AnswerSet> plans = clingo->minimalPlanQuery(goal,true,max_n,1);
+  list<AnswerSet> plans = clingo->minimalPlanQuery(goal,false,max_n,1);
   
   if(plans.empty())
     return AnswerSet();
