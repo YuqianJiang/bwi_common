@@ -58,7 +58,7 @@ class CostLearner():
 		for (state,action) in self.sa_set:
 			actionname = self.action_list[action]
 			symbolicstate = self.state_list[state]
-			rule += "c(("+','.join(str(e) for e in symbolicstate) +"),"+actionname+","+str(int(round(table[state,action])))+").\n"
+			rule += "c(("+','.join(str(e) for e in symbolicstate) +"),"+actionname+","+str(-int(round(table[state,action])))+").\n"
 
 		#print rule
 		cost_file.write(rule)
@@ -100,8 +100,8 @@ class CostLearner():
 		constraint_file = open("/tmp/constraint.asp","w")
 
 		#rule = "#program check(n).\n" + "#external query(n).\n"
-		rule = "#program step(n).\n"
-		rule += ":- C >= " + str(plan_quality) + ", C = #sum{C1:cost(C1,I)}.\n"
+		rule = "#program check(n).\n#external query(n).\n"
+		rule += ":- C >= " + str(-plan_quality) + ", total_cost(C, n).\n"
 		constraint_file.write(rule)
 		constraint_file.close()
 

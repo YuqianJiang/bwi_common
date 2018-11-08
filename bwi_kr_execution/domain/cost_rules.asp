@@ -1,3 +1,6 @@
+#program base.
+total_cost(0,0).
+
 #program step(n).
 
 state(is_in(1,R), n-1) :- is_in(1,R,n-1).
@@ -16,12 +19,14 @@ default_cost(D*2, n) :- dist(R1, R2, D), navigate_to(R1, n), is_near(1, R2, n-1)
 
 cost(C, n) :- eval_cost(C, n).
 cost(C, n) :- default_cost(C, n), #count{C1:eval_cost(C1, n)}=0.
-cost(5, n) :- #count{C1:eval_cost(C1, n); C2:default_cost(C2,n)}=0.
+cost(1, n) :- #count{C1:eval_cost(C1, n); C2:default_cost(C2,n)}=0.
+
+total_cost(C1+C2, n) :- total_cost(C1, n-1), cost(C2, n).
 
 %:~ cost(X,Y). [X@1,Y]
 
 #show cost/2.
-#show default_cost/2.
+%#show default_cost/2.
 
 #show is_in/3.
 #show is_near/3.

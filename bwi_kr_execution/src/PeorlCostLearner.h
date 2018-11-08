@@ -73,7 +73,7 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
 
           float cost = estimator.getActionCost(*actions.begin());
 
-          learner.attr("learn")(state, state_next, action, cost);
+          learner.attr("learn")(state, state_next, action, -cost);
         }
         /*else {
           ROS_INFO_STREAM(actions.begin()->getName() << " not evaluable");
@@ -87,15 +87,35 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
   }
 
   void actionStarted(const actasp::AspFluent &action) noexcept override {
-      learners_map[goal].attr("clear_constraint")();
-    }
+    learners_map[goal].attr("clear_constraint")();
+
+    currentFluents = getStateFluents();
+
+    time = ros::Time::now();
+  }
 
   void actionTerminated(const actasp::AspFluent &action, bool succeeded) noexcept override {
       //ROS_INFO_STREAM("Terminating execution: " << action.toString() << " Success:" << succeeded);
+    if (succeeded) {
+      float reward = -(ros::Time::now() - time).toSec();
+      std::cout << "Reward is " << reward << std::endl;
+
+      std::vector<std::string> prev_state;
+      transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(prev_state), 
+                    [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
+
+      currentFluents = getStateFluents();
+      std::vector<std::string> state;
+      transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(state), 
+                    [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
+      
+      learners_map[goal].attr("learn")(prev_state, state, action.toStringNoTimeStep(), reward);
+
+    }
   }
 
   void planTerminated(const PlanStatus status, const actasp::AspFluent &final_action, const actasp::AnswerSet &plan_remainder) noexcept override {
-
+    learners_map[goal].attr("table_to_asp")("ro_table");
   }
 
   void goalChanged(const std::vector<actasp::AspRule>& newGoalRules) noexcept override {
@@ -138,8 +158,8 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
 
   void policyChanged(actasp::PartialPolicy *policy) noexcept override {}
 
-  void getStateAtTime(const actasp::AnswerSet &plan, int time, std::vector<std::string> &state) {
-    auto fluents = filterFluents(plan.getFluentsAtTime(time), stateFluentSet);
+  void getStateAtTime(const actasp::AnswerSet &plan, int t, std::vector<std::string> &state) {
+    auto fluents = filterFluents(plan.getFluentsAtTime(t), stateFluentSet);
     transform(fluents.begin(), fluents.end(), std::back_inserter(state), 
                     [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
   }
@@ -177,6 +197,8 @@ private:
 
   std::map<std::string, py::object> learners_map;
   std::string goal;
+  std::vector<actasp::AspFluent> currentFluents;
+  ros::Time time;
 
 };
 #pragma GCC visibility pop
