@@ -168,7 +168,7 @@ class LocationFunction(object):
         location_image = QImage(self.map_size, QImage.Format_RGB32)
         location_image.fill(Qt.white)
         painter = QPainter(location_image) 
-        for index, key in enumerate(self.locations):
+        for index, key in enumerate(sorted(self.locations)):
             if index > 254:
                 rospy.logerr("You have more than 254 locations, which is unsupported by the bwi_planning_common C++ code!")
             painter.setPen(Qt.NoPen)
