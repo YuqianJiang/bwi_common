@@ -87,7 +87,7 @@ int main(int argc, char**argv) {
   working_memory_path = "/tmp/current.asp";
   string cost_memory_path = "/tmp/costs.asp";
   string constraint_path = "/tmp/constraint.asp";
-  string distance_path = ros::package::getPath("utexas_gdc") + "/maps/simulation/3ne/distances.asp";
+  string distance_path = ros::package::getPath("utexas_gdc") + "/maps/simulation/multimap/3ne/distances.asp";
 
   // Touch the memory files so the reasoner can verify that it exists
   fstream fs;

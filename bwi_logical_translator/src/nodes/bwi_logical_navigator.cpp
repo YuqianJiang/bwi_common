@@ -658,11 +658,15 @@ bool BwiLogicalNavigator::senseDoor(bwi_msgs::CheckBool::Request &req,
 bool BwiLogicalNavigator::getPathPlan(bwi_msgs::LogicalNavPlan::Request &req,
                                       bwi_msgs::LogicalNavPlan::Response &res) {
 
+  publishNavigationMap(true, true);
+
   geometry_msgs::Pose start;
   if (req.use_robot_pose) {
 
     start.position.x = robot_x_;
     start.position.y = robot_y_;
+
+    ROS_INFO_STREAM("Using current robot pose to plan!\n" << start.position);
 
     tf::quaternionTFToMsg(
         tf::createQuaternionFromYaw(robot_yaw_), start.orientation);

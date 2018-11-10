@@ -21,10 +21,10 @@ prepare_knowledge_bwi_sim() {
     mysql -u root -p -e "source $knowledge_rep_path/sql/create_database.sql" &&
 
     # Load arena prespecified knowledge
-    yaml_files_path=$(rospack find utexas_gdc)/maps/simulation/3ne &&
+    yaml_files_path=$(rospack find utexas_gdc)/maps/simulation/multimap/3ne &&
     rosrun knowledge_representation populate_with_map $yaml_files_path
 
-    map_files_path=$(rospack find utexas_gdc)/maps/simulation/3ne &&
+    map_files_path=$(rospack find utexas_gdc)/maps/simulation/multimap/3ne &&
     rosrun bwi_knowledge_representation compute_euclidean_distance $map_files_path
 
     #Load additional knowledge

@@ -92,6 +92,7 @@ nav_msgs::Path LogicalNavigation::getPathPlan(const AspFluent &fluent, const geo
     auto& resource_manager_cast = dynamic_cast<BwiResourceManager&>(resource_manager);
     boost::optional<std::string> name = getLocationName(std::atoi(fluent.getParameters().at(0).c_str()), resource_manager_cast.ltmc);
     if (! name) {
+        ROS_INFO_STREAM("Location does not exist!");
         return nav_msgs::Path();
     }
 
@@ -112,6 +113,8 @@ nav_msgs::Path LogicalNavigation::getPathPlan(const AspFluent &fluent, const geo
     if (pathPlanClient.call(srv) && (srv.response.success)) {
         return srv.response.plan;
     }
+
+    ROS_INFO_STREAM("Failed to obtain path plan!!!!!!!!!!!!!!!!!!!!");
 
     return nav_msgs::Path();
 }

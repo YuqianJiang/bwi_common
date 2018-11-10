@@ -9,6 +9,8 @@
 #include "actions/ActionCostEstimator.h"
 #include <knowledge_representation/Instance.h>
 
+#include <fstream>
+
 #include <ros/package.h>
 
 #include <pybind11/embed.h> // everything needed for embedding
@@ -35,7 +37,14 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
     ltmc(dynamic_cast<BwiResourceManager&>(resourceManager).ltmc),
     guard(),
     learners_map(),
-    goal() {
+    goal(),
+    currentFluents(),
+    action_start(),
+    planning_start(),
+    execution_start(),
+    planning_finished(false),
+    actionLog(),
+    fs() {
       std::string path = ros::package::getPath("bwi_kr_execution") + "/src/bwi_kr_execution";
 
       py::module sys = py::module::import("sys");
@@ -43,6 +52,8 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
 
       learner_class = py::module::import("cost_learner").attr("CostLearner");
       //learner = learner_class();
+
+      fs.open("/tmp/results.csv", std::ios::out);
     }
 
   void planChanged(const actasp::AnswerSet &newPlan) noexcept override {
@@ -87,34 +98,60 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
   }
 
   void actionStarted(const actasp::AspFluent &action) noexcept override {
+    if (! planning_finished) {
+      execution_start = ros::Time::now();
+      fs << (execution_start - planning_start).toSec() << ",";
+      planning_finished = true;
+    }
+
+    actionLog << "\"" << action.toStringNoTimeStep() << "\"" << ",";
+
     learners_map[goal].attr("clear_constraint")();
 
     currentFluents = getStateFluents();
 
-    time = ros::Time::now();
+    action_start = ros::Time::now();
   }
 
   void actionTerminated(const actasp::AspFluent &action, bool succeeded) noexcept override {
       //ROS_INFO_STREAM("Terminating execution: " << action.toString() << " Success:" << succeeded);
+    ros::Time action_end = ros::Time::now();
+
+    actionLog << (action_end - action_start).toSec() << ",";
+
+    float reward;
     if (succeeded) {
-      float reward = -(ros::Time::now() - time).toSec();
-      std::cout << "Reward is " << reward << std::endl;
-
-      std::vector<std::string> prev_state;
-      transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(prev_state), 
-                    [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
-
-      currentFluents = getStateFluents();
-      std::vector<std::string> state;
-      transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(state), 
-                    [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
-      
-      learners_map[goal].attr("learn")(prev_state, state, action.toStringNoTimeStep(), reward);
-
+      reward = -(action_end - action_start).toSec();
     }
+    else {
+      reward = -100;
+    }
+
+    std::cout << "Reward is " << reward << std::endl;
+
+    std::vector<std::string> prev_state;
+    transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(prev_state), 
+                  [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
+
+    currentFluents = getStateFluents();
+    std::vector<std::string> state;
+    transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(state), 
+                  [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
+    
+    learners_map[goal].attr("learn")(prev_state, state, action.toStringNoTimeStep(), reward);
+
   }
 
   void planTerminated(const PlanStatus status, const actasp::AspFluent &final_action, const actasp::AnswerSet &plan_remainder) noexcept override {
+    ros::Time execution_end = ros::Time::now();
+
+    fs << actasp::ExecutionObserver::planStatusToString(status) << ",";
+    fs << (execution_end - execution_start).toSec() << ",";
+    fs << actionLog.str() << "\n";
+    fs.flush();
+
+    actionLog.str("");
+
     learners_map[goal].attr("table_to_asp")("ro_table");
   }
 
@@ -127,16 +164,14 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
       learners_map[goal] = learner_class();
     }
 
-
     std::vector<std::pair<std::vector<std::string>, std::string>> path;
     auto& plan = tracker.getCurrentPlan();
 
     if (!plan.isSatisfied()) {
       learners_map[goal].attr("clear_constraint")();
-      return;
     }
-
-    for (int i = 0; i < plan.maxTimeStep(); ++i) {
+    else {
+      for (int i = 0; i < plan.maxTimeStep(); ++i) {
         auto actions = extractActions(plan.getFluentsAtTime(i+1), actionMapToSet(actionMap));
 
         // not likely to happen
@@ -151,9 +186,14 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
         std::string action = actions.begin()->toStringNoTimeStep();
 
         path.push_back({state, action});
-    }
+      }
 
-    learners_map[goal].attr("constrain_plan_quality")(path);
+      learners_map[goal].attr("constrain_plan_quality")(path);
+    }
+    
+    fs << "\"" << tracker.currentTask.name << "\"" << ",";
+    planning_finished = false;
+    planning_start = ros::Time::now();
   }
 
   void policyChanged(actasp::PartialPolicy *policy) noexcept override {}
@@ -198,7 +238,14 @@ private:
   std::map<std::string, py::object> learners_map;
   std::string goal;
   std::vector<actasp::AspFluent> currentFluents;
-  ros::Time time;
+  ros::Time action_start;
+
+  ros::Time planning_start;
+  ros::Time execution_start;
+  bool planning_finished;
+
+  std::stringstream actionLog;
+  std::fstream fs;
 
 };
 #pragma GCC visibility pop

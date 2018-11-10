@@ -32,6 +32,7 @@ namespace bwi_krexec{
 			auto& poses = plan.poses;
 
 			if (poses.size() == 0) {
+				ROS_INFO_STREAM("Got an empty path!");
 				return failure_cost;
 			}
 
