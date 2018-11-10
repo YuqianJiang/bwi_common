@@ -2,7 +2,7 @@ import rospy
 from plan_execution.msg import ExecutePlanAction
 from smach import State
 from smach_ros import SimpleActionState, ServiceState
-from bwi_msgs.srv import RobotTeleporterInterface, RobotTeleporterInterfaceRequest
+from bwi_msgs.srv import RobotTeleporterInterface, RobotTeleporterInterfaceRequest, DoorHandlerInterface, DoorHandlerInterfaceRequest
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from std_srvs.srv import Empty, EmptyRequest
 
@@ -111,4 +111,22 @@ class ClearCostmap(ServiceState):
                             response_cb = self.response_cb)
 
     def response_cb(self, userdata, response):
-        rospy.sleep(2)
+        rospy.sleep(1)
+
+class CloseDoor(ServiceState):
+    def __init__(self, door = None):
+        ServiceState.__init__(self, 
+                            "/update_doors", 
+                            DoorHandlerInterface,
+                            request_cb = self.request_cb,
+                            response_cb = self.response_cb)
+        self.door = door
+
+    def request_cb(self, userdata, request):
+        if not self.door:
+            return DoorHandlerInterfaceRequest(door="", open=False, all_doors=True, open_timeout=0.0)
+        else:
+            return DoorHandlerInterfaceRequest(door=self.door, open=False, all_doors=False, open_timeout=0.0)
+
+    def response_cb(self, userdata, response):
+        rospy.sleep(1)

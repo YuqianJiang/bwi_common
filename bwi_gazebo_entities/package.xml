@@ -17,6 +17,14 @@
  
   <buildtool_depend>catkin</buildtool_depend>
 
+  <depend>boost</depend>
+  <depend>bwi_mapper</depend>
+  <depend>bwi_msgs</depend>
+  <depend>bwi_tools</depend>
+  <depend>gazebo_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+
   <exec_depend>gazebo_ros</exec_depend>
   <exec_depend>xacro</exec_depend>
 

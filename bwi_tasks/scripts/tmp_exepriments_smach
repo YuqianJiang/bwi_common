@@ -13,7 +13,7 @@ from bwi_kr_execution import goal_formulators, knowledge
 
 def main():
     rospy.init_node("tmp_experiments_smach")
-    target = rospy.get_param("~location", "l3_414a")
+    target = rospy.get_param("~location", "l3_414b")
 
     print(target)
 
@@ -35,13 +35,14 @@ def main():
         #StateMachine.add("INITIALIZE_ROBOT", states.TeleportRobot())
         StateMachine.add_auto("INITIALIZE_ROBOT", states.TeleportRobot(), ["succeeded"])
         StateMachine.add_auto("CLEAR_COSTMAP", states.ClearCostmap(), ["succeeded"])
+        StateMachine.add_auto("CLOSE_DOORS", states.CloseDoor(), ["succeeded"])
         control_flow.inject_userdata_auto("INJECT_LOCATION", "location", target)
-        StateMachine.add_auto('GOTO_LOCATION', task_machine.generate_goal_based_task_sm(
-            goal_formulators.GoToRoomOrLocationName(ltmc), ["location"]), ["succeeded"])
-        #StateMachine.add('GOTO_START', task_machine.generate_goal_based_task_sm(
-        #    goal_formulators.GoToRoomOrLocationName(ltmc, "o3_410f"), ["location"]),
-        #    transitions={"succeeded": "GOTO_LOCATION",
-        #                 "aborted": "GOTO_LOCATION"})
+        #StateMachine.add_auto('GOTO_LOCATION', task_machine.generate_goal_based_task_sm(
+        #    goal_formulators.GoToRoomOrLocationName(ltmc), ["location"]), ["succeeded"])
+        StateMachine.add('GOTO_LOCATION', task_machine.generate_goal_based_task_sm(
+            goal_formulators.GoToRoomOrLocationName(ltmc), ["location"]),
+            transitions={"succeeded": "INITIALIZE_ROBOT",
+                         "aborted": "INITIALIZE_ROBOT"})
 
     if introspect:
         sis = smach_ros.IntrospectionServer('introspection_server', sm, '/SM_ROOT')
