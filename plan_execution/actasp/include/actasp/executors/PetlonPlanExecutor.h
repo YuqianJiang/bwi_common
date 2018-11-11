@@ -17,6 +17,7 @@ public:
                      actasp::ResourceManager &resourceManager
   ) noexcept(false);
 
+  void setGoal(const std::vector<actasp::AspRule> &goalRules) noexcept;
 
   ~PetlonPlanExecutor();
 

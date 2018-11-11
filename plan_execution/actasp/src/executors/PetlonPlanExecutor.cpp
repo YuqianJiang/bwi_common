@@ -36,7 +36,7 @@ void PetlonPlanExecutor::computePlan() {
   bool evaluation = true;
 
   while (evaluation) {
-    AnswerSet answer = optimal_planner_.computeOptimalPlan(goalRules, 1.1, true, false);
+    AnswerSet answer = optimal_planner_.computeOptimalPlan(goalRules, 3, true, false);
     //AnswerSet answer = optimal_planner_.computePlan(goalRules);
     plan = answer.instantiateActions(actionMap, resourceManager);
 
@@ -72,7 +72,19 @@ void PetlonPlanExecutor::computePlan() {
 
   actionCounter = 0;
   
+}
 
+void PetlonPlanExecutor::setGoal(const std::vector<actasp::AspRule> &goalRules) noexcept {
+
+  this->goalRules = goalRules;
+
+  for_each(executionObservers.begin(), executionObservers.end(), NotifyGoalChanged(goalRules));
+
+  computePlan();
+
+  failureCount = 0;
+
+  evaluated_pairs_.clear();
 }
 
 }

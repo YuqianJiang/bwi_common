@@ -42,7 +42,7 @@ using namespace actasp;
 
 const static std::string memory_log_path = string("/tmp/bwi_action_execution_logs/");
 const int MAX_N = 30;
-const int PLANNER_TIMEOUT = 3; //seconds
+const int PLANNER_TIMEOUT = 5; //seconds
 
 std::string working_memory_path;
 void updateFacts() {
@@ -76,6 +76,7 @@ int main(int argc, char**argv) {
   
   ros::NodeHandle privateNode("~");
   string domainDirectory;
+  bool learning;
   n.param<std::string>("plan_execution/domain_directory", domainDirectory, ros::package::getPath("bwi_kr_execution")+"/domain/");
   
   if(domainDirectory.at(domainDirectory.size()-1) != '/')
@@ -84,6 +85,12 @@ int main(int argc, char**argv) {
 
   bool simulating;
   privateNode.param<bool>("simulation",simulating,false);
+  privateNode.param<bool>("use_learning", learning, true);
+
+  if (learning) {
+    ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!using learning!!!!!!!");
+  }
+  
 
   working_memory_path = "/tmp/current.asp";
   string cost_memory_path = "/tmp/costs.asp";
@@ -99,6 +106,10 @@ int main(int argc, char**argv) {
   fs.close();
 
   fs.open(constraint_path, ios::out);
+  if (!learning) {
+    fs << "#program step(n).\n:~ cost(X,Y). [X@1,Y]\n";
+    fs.flush();
+  }
   fs.close();
 
   unique_ptr<BwiResourceManager> resourceManager = unique_ptr<BwiResourceManager>(new BwiResourceManager());
@@ -118,18 +129,23 @@ int main(int argc, char**argv) {
                                                                 PLANNER_TIMEOUT);
   unique_ptr<actasp::AspKR> planningReasoner = unique_ptr<actasp::AspKR>(new RemoteReasoner(generator, MAX_N, actionMapToSet(actions)));
 
-  //auto replanner = new PetlonPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager);
-
+  ReplanningPlanExecutor* replanner;
   unique_ptr<TaskPlanTracker> tracker = unique_ptr<TaskPlanTracker>(new TaskPlanTracker());
-  auto replanner = new PeorlPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager, *tracker);
-  
+
+  if (!learning) {
+    replanner = new PetlonPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager);
+  }
+  else {
+    replanner = new PeorlPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager, *tracker);
+  }
+
   PlanExecutor* executor = replanner;
 
   ConsoleObserver observer;
   std::function<void()> function = std::function<void()>(updateFacts);
   KnowledgeUpdater updating_observer(function, *resourceManager);
-  //ActionCostUpdater action_cost_updater(actions, evaluable_actions, state_fluents, *resourceManager);
-  PeorlCostLearner cost_learner(actions, evaluable_actions, state_fluents, *resourceManager, *tracker);
+  ActionCostUpdater* action_cost_updater;
+  PeorlCostLearner* cost_learner;
 
   replanner->addPlanningObserver(observer);
   executor->addExecutionObserver(observer);
@@ -137,9 +153,16 @@ int main(int argc, char**argv) {
   replanner->addPlanningObserver(updating_observer);
   executor->addExecutionObserver(updating_observer);
 
-  //replanner->addPlanningObserver(action_cost_updater);
-  replanner->addPlanningObserver(cost_learner);
-  replanner->addExecutionObserver(cost_learner);
+  if (!learning) {    
+    action_cost_updater = new ActionCostUpdater(actions, evaluable_actions, state_fluents, *resourceManager);
+    replanner->addPlanningObserver(*action_cost_updater);
+    executor->addExecutionObserver(*action_cost_updater);
+  }
+  else {
+    cost_learner = new PeorlCostLearner(actions, evaluable_actions, state_fluents, *resourceManager, *tracker);
+    replanner->addPlanningObserver(*cost_learner);
+    executor->addExecutionObserver(*cost_learner);
+  }
 
   PlanExecutorNode node(executor);
 
