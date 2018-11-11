@@ -91,11 +91,11 @@ bool isCloseToRobot(geometry_msgs::Pose pose, bool checkOrientation) {
     float xdiff = pose.position.x - it->pose.position.x;
     float ydiff = pose.position.y - it->pose.position.y;
     float distance = sqrt(pow(xdiff,2)+pow(ydiff,2));
-    if (distance < 3) {
+    if (distance < 2.5) {
       return true;
     }
 
-    if ((distance < 5) && (checkOrientation)) {
+    if ((distance < 3) && (checkOrientation)) {
       float angle = atan2f(ydiff, xdiff) - tf::getYaw(it->pose.orientation);
       if (abs(angle)<0.5) {
         return true;
@@ -183,6 +183,13 @@ bool Person::sendVelocityCommand() {
   if (isCloseToRobot(location, true)) {
     ROS_INFO_STREAM(model_name << " is too close to robot");
     pause();
+    if (teleport(inactive_pose)) {
+      ROS_INFO_STREAM(model_name << " is inactive");
+      active = false;
+      paused = false;
+      flashing = false;
+      active_random_persons--;
+    }
     return true;
   }
 
@@ -345,6 +352,8 @@ int main(int argc, char *argv[]) {
 
   initializePersons();
 
+  robots.push_back(Robot(0, "default", nh.subscribe<nav_msgs::Odometry>("/odom",1,boost::bind(&robotOdometryHandler, _1, 0))));
+
   ros::Rate r(120);
   while (ros::ok()) {
     ros::spinOnce();
@@ -352,7 +361,7 @@ int main(int argc, char *argv[]) {
     while (active_random_persons < total_random_persons) {
       int person_idx = rng.randomInt(persons.size()-1);
       int pose_idx = rng.randomInt(1);
-      while ((persons[person_idx].active) || isCloseToRobot(persons[person_idx].poses[pose_idx], true)) {
+      while ((persons[person_idx].active) || isCloseToRobot(persons[person_idx].poses[pose_idx], false)) {
         person_idx = rng.randomInt(persons.size()-1);
         pose_idx = rng.randomInt(1);
       }
