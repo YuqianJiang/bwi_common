@@ -77,7 +77,7 @@ int main(int argc, char**argv) {
   ros::NodeHandle privateNode("~");
   string domainDirectory;
   bool learning;
-  n.param<std::string>("plan_execution/domain_directory", domainDirectory, ros::package::getPath("bwi_kr_execution")+"/domain/");
+  n.param<std::string>("bwi_kr_execution/domain_directory", domainDirectory, ros::package::getPath("bwi_kr_execution")+"/domain/");
   
   if(domainDirectory.at(domainDirectory.size()-1) != '/')
     domainDirectory += '/';
@@ -88,7 +88,7 @@ int main(int argc, char**argv) {
   privateNode.param<bool>("use_learning", learning, true);
 
   if (learning) {
-    ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!using learning!!!!!!!");
+    ROS_INFO("!!!!!!!!using learning!!!!!!!");
   }
   
 

@@ -8,7 +8,7 @@
 
   <param name="bwi_kr_execution/domain_directory" type="str" value="$(arg domain)" />
 
-  <node name="plan_executor" pkg="bwi_kr_execution" type="$(arg executor)">
+  <node name="plan_executor" pkg="bwi_kr_execution" type="$(arg executor)" output="screen">
     <!-- launch-prefix="gdb -ex run -args" -->
     <param name="simulation" type="bool" value="$(arg simulation)" />
     <param name="use_learning" type="bool" value="$(arg use_learning)" />

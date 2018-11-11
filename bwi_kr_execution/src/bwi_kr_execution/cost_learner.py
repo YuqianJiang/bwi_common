@@ -102,6 +102,7 @@ class CostLearner():
 		#rule = "#program check(n).\n" + "#external query(n).\n"
 		rule = "#program check(n).\n#external query(n).\n"
 		rule += ":- C >= " + str(-plan_quality) + ", total_cost(C, n).\n"
+		print(rule)
 		constraint_file.write(rule)
 		constraint_file.close()
 

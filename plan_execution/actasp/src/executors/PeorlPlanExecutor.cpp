@@ -39,6 +39,7 @@ void PeorlPlanExecutor::computePlan() {
     AnswerSet answer = planner.computePlan(goalRules);
 
     if (!answer.isSatisfied()) {
+      std::cout << "!!!!!!No better plan!!!!!" << std::endl;
       if (!tracker.getCurrentPlan().isSatisfied()) {
         hasFailed = true;
       }

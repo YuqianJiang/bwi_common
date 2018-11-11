@@ -3,13 +3,12 @@
 import knowledge_representation
 import rospy
 import smach_ros
-
 from knowledge_representation import LongTermMemoryConduit
 from smach import StateMachine, State
 
 from bwi_tasks.common import states, control_flow, task_machine
+from bwi_tasks.experiment import utils
 from bwi_kr_execution import goal_formulators, knowledge
-
 
 def main():
     rospy.init_node("tmp_experiments_smach")
@@ -32,17 +31,27 @@ def main():
     sm = StateMachine(outcomes=['succeeded', 'preempted', 'aborted'])
     # Open the container
     with sm:
-        #StateMachine.add("INITIALIZE_ROBOT", states.TeleportRobot())
+        run_repeat_gate = control_flow.RepeatN(10)
+        StateMachine.add_auto("LAUNCH_PLAN_EXECUTOR", 
+            utils.LaunchPlanExecutor(simulation, True, True), ["succeeded"])
+        
+        episode_repeat_gate = control_flow.RepeatN(20)
+        StateMachine.add_auto("CLEAN_EPISODE_REPEAT", control_flow.ResetRepeat(episode_repeat_gate), ["succeeded"])
+
         StateMachine.add_auto("INITIALIZE_ROBOT", states.TeleportRobot(), ["succeeded"])
         StateMachine.add_auto("CLEAR_COSTMAP", states.ClearCostmap(), ["succeeded"])
         StateMachine.add_auto("CLOSE_DOORS", states.CloseDoor(), ["succeeded"])
         control_flow.inject_userdata_auto("INJECT_LOCATION", "location", target)
-        #StateMachine.add_auto('GOTO_LOCATION', task_machine.generate_goal_based_task_sm(
-        #    goal_formulators.GoToRoomOrLocationName(ltmc), ["location"]), ["succeeded"])
         StateMachine.add('GOTO_LOCATION', task_machine.generate_goal_based_task_sm(
             goal_formulators.GoToRoomOrLocationName(ltmc), ["location"]),
-            transitions={"succeeded": "INITIALIZE_ROBOT",
-                         "aborted": "INITIALIZE_ROBOT"})
+            transitions={"succeeded": "EPISODE_REPEAT",
+                         "aborted": "EPISODE_REPEAT"})
+        StateMachine.add("EPISODE_REPEAT", episode_repeat_gate, 
+            transitions={"repeat": "INITIALIZE_ROBOT", "done": "SHUTDOWN_PLAN_EXECUTOR"})
+
+        StateMachine.add_auto("SHUTDOWN_PLAN_EXECUTOR", utils.ShutdownPlanExecutor(), ["succeeded"])
+        StateMachine.add("RUN_REPEAT", run_repeat_gate, 
+            transitions={"repeat": "LAUNCH_PLAN_EXECUTOR", "done": "succeeded"})
 
     if introspect:
         sis = smach_ros.IntrospectionServer('introspection_server', sm, '/SM_ROOT')

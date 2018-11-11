@@ -56,7 +56,13 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
       learner_class = py::module::import("cost_learner").attr("CostLearner");
       //learner = learner_class();
 
-      fs.open("/tmp/results.csv", std::ios::out);
+      auto t = std::time(nullptr);
+      auto tm = *std::localtime(&t);
+      std::stringstream stampstream;
+      stampstream << std::put_time(&tm, "%d-%m-%Y_%H-%M-%S");
+      auto results_path = "/tmp/results/results_rl_" + stampstream.str() + ".csv";
+
+      fs.open(results_path, std::ios::out);
     }
 
   void planChanged(const actasp::AnswerSet &newPlan) noexcept override {
