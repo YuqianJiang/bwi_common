@@ -82,6 +82,18 @@ void ReplanningPlanExecutor::executeActionStep() {
                observer.actionTerminated(as_fluent, !current->hasFailed());
              });
 
+    if (current->hasFailed()) {
+      std::cout << "FAILED ACTION. Aborting goal." << std::endl;
+      for_each(executionObservers.begin(), executionObservers.end(),
+               [this, as_fluent](ExecutionObserver &observer) {
+                 observer.planTerminated(ExecutionObserver::PlanStatus::TOO_MANY_ACTION_FAILURES,
+                                         as_fluent, planToAnswerSet(plan));
+               });
+
+      hasFailed = true;
+      return;
+    }
+
     plan.pop_front();
 
     newAction = true;

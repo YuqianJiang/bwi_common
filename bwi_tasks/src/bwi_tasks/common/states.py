@@ -94,13 +94,13 @@ class TeleportRobot(ServiceState):
         pose.pose.covariance[35] = 0.25
 
         self.pub.publish(pose)
-        rospy.sleep(2)
+        rospy.sleep(1)
         self.pub.publish(pose)
-        rospy.sleep(2)
+        rospy.sleep(1)
         self.pub.publish(pose)
-        rospy.sleep(2)
+        rospy.sleep(1)
         self.pub.publish(pose)
-        rospy.sleep(2)
+        rospy.sleep(1)
 
 class ClearCostmap(ServiceState):
     def __init__(self):

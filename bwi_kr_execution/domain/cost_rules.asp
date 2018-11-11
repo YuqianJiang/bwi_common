@@ -6,7 +6,8 @@ total_cost(0,0).
 state(is_in(1,R), n-1) :- is_in(1,R,n-1).
 state(is_near(1,L), n-1) :- is_near(1,L,n-1).
 action(navigate_to(R), n) :- navigate_to(R,n).
-action(go_through(R), n) :- go_through(R,n).
+action(go_through(D), n) :- go_through(D,n).
+action(open_door(D), n) :- open_door(D,n).
 
 eval_cost(C, n) :- c((), A, C), action(A, n), #count{S:state(S, n-1)}=0.
 eval_cost(C, n) :- c((S1), A, C), state(S1, n-1), action(A, n), #count{S:state(S, n-1)}=1.

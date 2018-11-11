@@ -40,12 +40,13 @@ using namespace bwi_krexec;
 using namespace std;
 using namespace actasp;
 
-const static std::string memory_log_path = string("/tmp/villa_action_execution_logs/");
+const static std::string memory_log_path = string("/tmp/bwi_action_execution_logs/");
 const int MAX_N = 30;
 const int PLANNER_TIMEOUT = 3; //seconds
 
 std::string working_memory_path;
 void updateFacts() {
+
   string as_string = memoryConduitToAsp();
   std::ofstream working_memory(working_memory_path.c_str());
   working_memory << as_string;

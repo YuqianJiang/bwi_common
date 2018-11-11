@@ -13,10 +13,13 @@
 
 #include <ros/package.h>
 
+#include <chrono>
+
 #include <pybind11/embed.h> // everything needed for embedding
 #include <pybind11/stl.h> // ...plus this
 
 namespace py = pybind11;
+using namespace std::chrono;
 
 namespace bwi_krexec {
 
@@ -100,7 +103,8 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
   void actionStarted(const actasp::AspFluent &action) noexcept override {
     if (! planning_finished) {
       execution_start = ros::Time::now();
-      fs << (execution_start - planning_start).toSec() << ",";
+      duration<double> time_span = duration_cast<duration<double>>(steady_clock::now() - planning_start);
+      fs << (time_span.count()) << ",";
       planning_finished = true;
     }
 
@@ -122,23 +126,20 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
     float reward;
     if (succeeded) {
       reward = -(action_end - action_start).toSec();
-    }
-    else {
-      reward = -100;
-    }
-
-    std::cout << "Reward is " << reward << std::endl;
-
-    std::vector<std::string> prev_state;
-    transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(prev_state), 
-                  [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
-
-    currentFluents = getStateFluents();
-    std::vector<std::string> state;
-    transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(state), 
-                  [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
     
-    learners_map[goal].attr("learn")(prev_state, state, action.toStringNoTimeStep(), reward);
+      std::cout << "Reward is " << reward << std::endl;
+
+      std::vector<std::string> prev_state;
+      transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(prev_state), 
+                    [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
+
+      currentFluents = getStateFluents();
+      std::vector<std::string> state;
+      transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(state), 
+                    [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
+      
+      learners_map[goal].attr("learn")(prev_state, state, action.toStringNoTimeStep(), reward);
+    }
 
   }
 
@@ -193,7 +194,7 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
     
     fs << "\"" << tracker.currentTask.name << "\"" << ",";
     planning_finished = false;
-    planning_start = ros::Time::now();
+    planning_start = steady_clock::now();
   }
 
   void policyChanged(actasp::PartialPolicy *policy) noexcept override {}
@@ -240,7 +241,7 @@ private:
   std::vector<actasp::AspFluent> currentFluents;
   ros::Time action_start;
 
-  ros::Time planning_start;
+  steady_clock::time_point planning_start;
   ros::Time execution_start;
   bool planning_finished;
 

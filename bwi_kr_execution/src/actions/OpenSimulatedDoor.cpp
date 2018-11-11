@@ -2,10 +2,16 @@
 
 #include "bwi_msgs/DoorHandlerInterface.h"
 
+#include <random>
+#include <cmath>
+
 using namespace std;
 using namespace ros;
 
 namespace bwi_krexec {
+
+std::random_device rd{};
+std::mt19937 gen{rd()};
 
 
 OpenSimulatedDoor::OpenSimulatedDoor(const int door_id, knowledge_rep::LongTermMemoryConduit &ltmc) : 
@@ -42,6 +48,15 @@ void OpenSimulatedDoor::run() {
     }
 
     door_name = attrs.at(0).get_string_value();
+
+    if (door_name == "d3_414b1") {
+      std::normal_distribution<> d{60,10};
+      ros::Duration(d(gen)).sleep();
+    }
+    else {
+      std::normal_distribution<> d{20,10};
+      ros::Duration(d(gen)).sleep();
+    }
 
     doorStateClient = n.serviceClient<bwi_msgs::CheckBool>("/sense_door_state");
 
