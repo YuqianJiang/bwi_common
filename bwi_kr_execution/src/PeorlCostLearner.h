@@ -32,7 +32,7 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
                             const std::set<std::string> &stateFluentSet,
                             actasp::ResourceManager &resourceManager,
                             actasp::TaskPlanTracker &taskPlanTracker,
-			    bool use_motion_cost = true):
+			                      bool use_motion_cost = true):
     actionMap(actionMap),
     evaluableActionSet(evaluableActionSet),
     stateFluentSet(stateFluentSet),
@@ -92,7 +92,7 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
         path.push_back({state, action});
 
         if ((use_motion_cost) && 
-	    (evaluableActionSet.find(actions.begin()->getName()) != evaluableActionSet.end())) {
+	         (evaluableActionSet.find(actions.begin()->getName()) != evaluableActionSet.end())) {
 
           float cost = estimator.getActionCost(*actions.begin());
 

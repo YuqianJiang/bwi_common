@@ -147,7 +147,7 @@ int main(int argc, char**argv) {
   unique_ptr<TaskPlanTracker> tracker = unique_ptr<TaskPlanTracker>(new TaskPlanTracker());
 
   if (!use_learning) {
-    replanner = new PetlonPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager);
+    replanner = new PetlonPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager, use_motion_cost);
   }
   else {
     replanner = new PeorlPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager, *tracker);
@@ -168,7 +168,7 @@ int main(int argc, char**argv) {
   executor->addExecutionObserver(updating_observer);
 
   if (!use_learning) {    
-    action_cost_updater = new ActionCostUpdater(actions, evaluable_actions, state_fluents, *resourceManager);
+    action_cost_updater = new ActionCostUpdater(actions, evaluable_actions, state_fluents, *resourceManager, use_motion_cost);
     replanner->addPlanningObserver(*action_cost_updater);
     executor->addExecutionObserver(*action_cost_updater);
   }

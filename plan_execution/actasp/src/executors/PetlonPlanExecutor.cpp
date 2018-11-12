@@ -16,13 +16,15 @@ PetlonPlanExecutor::PetlonPlanExecutor(AspKR &reasoner,
                                        const std::map<std::string, ActionFactory> &actionMap,
                                        const std::set<std::string> &evaluableActionSet,
                                        const std::set<std::string> &stateFluentSet,
-                                       ResourceManager &resourceManager
+                                       ResourceManager &resourceManager,
+                                       bool use_motion_cost
 ) noexcept(false) :
     ReplanningPlanExecutor(reasoner, planner, actionMap, resourceManager),
     optimal_planner_(planner),
     evaluableActionSet(evaluableActionSet),
     stateFluentSet(stateFluentSet),
-    evaluated_pairs_() {
+    evaluated_pairs_(),
+    use_motion_cost(use_motion_cost) {
 
 }
 
@@ -45,6 +47,10 @@ void PetlonPlanExecutor::computePlan() {
     if (hasFailed) return;
 
     for_each(planningObservers.begin(), planningObservers.end(), NotifyNewPlan(answer));
+
+    if (!use_motion_cost) {
+      break;
+    }
 
     //check if new evaluation was needed
     evaluation = false;
