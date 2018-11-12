@@ -14,7 +14,8 @@ public:
                      const std::map<std::string, ActionFactory> &actionMap,
                      const std::set<std::string> &evaluableActionSet,
                      const std::set<std::string> &stateFluentSet,
-                     actasp::ResourceManager &resourceManager
+                     actasp::ResourceManager &resourceManager,
+                     bool use_motion_cost = true
   ) noexcept(false);
 
   void setGoal(const std::vector<actasp::AspRule> &goalRules) noexcept;
@@ -29,6 +30,7 @@ private:
   std::set<std::string> evaluated_pairs_;
   std::set<std::string> evaluableActionSet;
   std::set<std::string> stateFluentSet;
+  bool use_motion_cost;
 
 
 };
