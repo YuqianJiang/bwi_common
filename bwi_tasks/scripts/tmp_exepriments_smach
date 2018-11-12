@@ -31,11 +31,11 @@ def main():
     sm = StateMachine(outcomes=['succeeded', 'preempted', 'aborted'])
     # Open the container
     with sm:
-        run_repeat_gate = control_flow.RepeatN(10)
+        run_repeat_gate = control_flow.RepeatN(20)
         StateMachine.add_auto("LAUNCH_PLAN_EXECUTOR", 
-            utils.LaunchPlanExecutor(simulation, True, True), ["succeeded"])
+            utils.LaunchPlanExecutor(simulation, True, False), ["succeeded"])
         
-        episode_repeat_gate = control_flow.RepeatN(20)
+        episode_repeat_gate = control_flow.RepeatN(30)
         StateMachine.add_auto("CLEAN_EPISODE_REPEAT", control_flow.ResetRepeat(episode_repeat_gate), ["succeeded"])
 
         StateMachine.add_auto("INITIALIZE_ROBOT", states.TeleportRobot(), ["succeeded"])

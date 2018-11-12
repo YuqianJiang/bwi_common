@@ -129,10 +129,18 @@ int main(int argc, char**argv) {
 
   set<string> state_fluents = {"is_in", "is_near"};
 
-  FilteringQueryGenerator *generator = Clingo::getQueryGenerator("n", domainDirectory, {distance_path},
+  FilteringQueryGenerator *generator;
+  if (use_motion_cost) {
+    generator = Clingo::getQueryGenerator("n", domainDirectory, {distance_path},
                                                                 {working_memory_path, cost_memory_path, constraint_path},
                                                                 actionMapToSet(actions),
                                                                 PLANNER_TIMEOUT);
+  }
+  else {
+    generator = Clingo::getQueryGenerator("n", domainDirectory, {working_memory_path, cost_memory_path, constraint_path},
+                                                                actionMapToSet(actions),
+                                                                PLANNER_TIMEOUT);
+  }
   unique_ptr<actasp::AspKR> planningReasoner = unique_ptr<actasp::AspKR>(new RemoteReasoner(generator, MAX_N, actionMapToSet(actions)));
 
   ReplanningPlanExecutor* replanner;
