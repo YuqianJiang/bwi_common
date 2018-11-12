@@ -31,12 +31,14 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
                             const std::set<std::string> &evaluableActionSet, 
                             const std::set<std::string> &stateFluentSet,
                             actasp::ResourceManager &resourceManager,
-                            actasp::TaskPlanTracker &taskPlanTracker):
+                            actasp::TaskPlanTracker &taskPlanTracker,
+			    bool use_motion_cost = true):
     actionMap(actionMap),
     evaluableActionSet(evaluableActionSet),
     stateFluentSet(stateFluentSet),
     resourceManager(resourceManager),
     tracker(taskPlanTracker),
+    use_motion_cost(use_motion_cost),
     ltmc(dynamic_cast<BwiResourceManager&>(resourceManager).ltmc),
     guard(),
     learners_map(),
@@ -89,7 +91,8 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
 
         path.push_back({state, action});
 
-        if (evaluableActionSet.find(actions.begin()->getName()) != evaluableActionSet.end()) {
+        if ((use_motion_cost) && 
+	    (evaluableActionSet.find(actions.begin()->getName()) != evaluableActionSet.end())) {
 
           float cost = estimator.getActionCost(*actions.begin());
 
@@ -236,6 +239,8 @@ private:
   std::set<std::string> stateFluentSet;
   actasp::ResourceManager &resourceManager;
   actasp::TaskPlanTracker &tracker;
+  bool use_motion_cost;
+
   std::reference_wrapper<knowledge_rep::LongTermMemoryConduit> ltmc;
 
   std::map<std::string, float> cost_map_;

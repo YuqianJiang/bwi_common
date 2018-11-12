@@ -76,7 +76,7 @@ int main(int argc, char**argv) {
   
   ros::NodeHandle privateNode("~");
   string domainDirectory;
-  bool learning;
+  
   n.param<std::string>("bwi_kr_execution/domain_directory", domainDirectory, ros::package::getPath("bwi_kr_execution")+"/domain/");
   
   if(domainDirectory.at(domainDirectory.size()-1) != '/')
@@ -84,11 +84,17 @@ int main(int argc, char**argv) {
 
 
   bool simulating;
+  bool use_learning;
+  bool use_motion_cost;
   privateNode.param<bool>("simulation",simulating,false);
-  privateNode.param<bool>("use_learning", learning, true);
+  privateNode.param<bool>("use_learning", use_learning, true);
+  privateNode.param<bool>("use_motion_cost", use_motion_cost, true);
 
-  if (learning) {
+  if (use_learning) {
     ROS_INFO("!!!!!!!!using learning!!!!!!!");
+  }
+  if (use_motion_cost) {
+    ROS_INFO("!!!!!!!!using motion cost!!!!!!!");
   }
   
 
@@ -106,7 +112,7 @@ int main(int argc, char**argv) {
   fs.close();
 
   fs.open(constraint_path, ios::out);
-  if (!learning) {
+  if (!use_learning) {
     fs << "#program step(n).\n:~ cost(X,Y). [X@1,Y]\n";
     fs.flush();
   }
@@ -132,7 +138,7 @@ int main(int argc, char**argv) {
   ReplanningPlanExecutor* replanner;
   unique_ptr<TaskPlanTracker> tracker = unique_ptr<TaskPlanTracker>(new TaskPlanTracker());
 
-  if (!learning) {
+  if (!use_learning) {
     replanner = new PetlonPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager);
   }
   else {
@@ -153,13 +159,13 @@ int main(int argc, char**argv) {
   replanner->addPlanningObserver(updating_observer);
   executor->addExecutionObserver(updating_observer);
 
-  if (!learning) {    
+  if (!use_learning) {    
     action_cost_updater = new ActionCostUpdater(actions, evaluable_actions, state_fluents, *resourceManager);
     replanner->addPlanningObserver(*action_cost_updater);
     executor->addExecutionObserver(*action_cost_updater);
   }
   else {
-    cost_learner = new PeorlCostLearner(actions, evaluable_actions, state_fluents, *resourceManager, *tracker);
+    cost_learner = new PeorlCostLearner(actions, evaluable_actions, state_fluents, *resourceManager, *tracker, use_motion_cost);
     replanner->addPlanningObserver(*cost_learner);
     executor->addExecutionObserver(*cost_learner);
   }
