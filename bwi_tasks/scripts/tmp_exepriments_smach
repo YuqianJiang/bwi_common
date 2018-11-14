@@ -5,6 +5,7 @@ import rospy
 import smach_ros
 from knowledge_representation import LongTermMemoryConduit
 from smach import StateMachine, State
+from geometry_msgs.msg import Point
 
 from bwi_tasks.common import states, control_flow, task_machine
 from bwi_tasks.experiment import utils
@@ -31,13 +32,12 @@ def main():
     sm = StateMachine(outcomes=['succeeded', 'preempted', 'aborted'])
     # Open the container
     with sm:
-        run_repeat_gate = control_flow.RepeatN(20)
+        run_repeat_gate = control_flow.RepeatN(10)
         StateMachine.add_auto("LAUNCH_PLAN_EXECUTOR", 
-            utils.LaunchPlanExecutor(simulation, True, False), ["succeeded"])
+            utils.LaunchPlanExecutor(simulation, True, True), ["succeeded"])
         
-        episode_repeat_gate = control_flow.RepeatN(30)
+        episode_repeat_gate = control_flow.RepeatN(20)
         StateMachine.add_auto("CLEAN_EPISODE_REPEAT", control_flow.ResetRepeat(episode_repeat_gate), ["succeeded"])
-
         StateMachine.add_auto("INITIALIZE_ROBOT", states.TeleportRobot(), ["succeeded"])
         StateMachine.add_auto("CLEAR_COSTMAP", states.ClearCostmap(), ["succeeded"])
         StateMachine.add_auto("CLOSE_DOORS", states.CloseDoor(), ["succeeded"])
@@ -47,7 +47,20 @@ def main():
             transitions={"succeeded": "EPISODE_REPEAT",
                          "aborted": "EPISODE_REPEAT"})
         StateMachine.add("EPISODE_REPEAT", episode_repeat_gate, 
-            transitions={"repeat": "INITIALIZE_ROBOT", "done": "SHUTDOWN_PLAN_EXECUTOR"})
+            transitions={"repeat": "INITIALIZE_ROBOT", "done": "CLEAN_EPISODE_REPEAT2"})
+
+        episode_repeat_gate2 = control_flow.RepeatN(20)
+        StateMachine.add_auto("CLEAN_EPISODE_REPEAT2", control_flow.ResetRepeat(episode_repeat_gate2), ["succeeded"])
+        StateMachine.add_auto("INITIALIZE_ROBOT2", states.TeleportRobot(Point(21, 107, 0)), ["succeeded"])
+        StateMachine.add_auto("CLEAR_COSTMAP2", states.ClearCostmap(), ["succeeded"])
+        StateMachine.add_auto("CLOSE_DOORS2", states.CloseDoor(), ["succeeded"])
+        control_flow.inject_userdata_auto("INJECT_LOCATION2", "location", target)
+        StateMachine.add('GOTO_LOCATION2', task_machine.generate_goal_based_task_sm(
+            goal_formulators.GoToRoomOrLocationName(ltmc), ["location"]),
+            transitions={"succeeded": "EPISODE_REPEAT2",
+                         "aborted": "EPISODE_REPEAT2"})
+        StateMachine.add("EPISODE_REPEAT2", episode_repeat_gate2, 
+            transitions={"repeat": "INITIALIZE_ROBOT2", "done": "SHUTDOWN_PLAN_EXECUTOR"})
 
         StateMachine.add_auto("SHUTDOWN_PLAN_EXECUTOR", utils.ShutdownPlanExecutor(), ["succeeded"])
         StateMachine.add("RUN_REPEAT", run_repeat_gate, 

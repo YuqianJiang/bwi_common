@@ -3,7 +3,7 @@ from plan_execution.msg import ExecutePlanAction
 from smach import State
 from smach_ros import SimpleActionState, ServiceState
 from bwi_msgs.srv import RobotTeleporterInterface, RobotTeleporterInterfaceRequest, DoorHandlerInterface, DoorHandlerInterfaceRequest
-from geometry_msgs.msg import PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped, Point
 from std_srvs.srv import Empty, EmptyRequest
 
 from plan_execution.helpers import *
@@ -60,19 +60,19 @@ class ExecuteGoal(SimpleActionState):
     """
 
 class TeleportRobot(ServiceState):
-    def __init__(self):
+    def __init__(self, position=Point(15,107,0)):
         ServiceState.__init__(self, 
                             "teleport_robot", 
                             RobotTeleporterInterface,
                             request_cb = self.request_cb,
                             response_cb = self.response_cb)
         self.pub = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size=10)
+        self.position = position
 
     def request_cb(self, userdata, request):
         teleport_req = RobotTeleporterInterfaceRequest()
         
-        teleport_req.pose.position.x = 15.0
-        teleport_req.pose.position.y = 107.0
+        teleport_req.pose.position = self.position
         teleport_req.pose.orientation.x = 0
         teleport_req.pose.orientation.y = 0
         teleport_req.pose.orientation.z = 0
@@ -85,8 +85,7 @@ class TeleportRobot(ServiceState):
         pose = PoseWithCovarianceStamped()
         #pose.header.stamp = rospy.get_rostime()
         pose.header.frame_id = "/level_mux_map"
-        pose.pose.pose.position.x = 15.0
-        pose.pose.pose.position.y = 107.0
+        pose.pose.pose.position = self.position
         pose.pose.pose.orientation.z = 0.0
         pose.pose.pose.orientation.w = 1.0
         pose.pose.covariance[0] = 0.1
