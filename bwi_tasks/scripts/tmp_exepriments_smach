@@ -64,10 +64,10 @@ def main():
 
         episode_repeat_gate3 = control_flow.RepeatN(20)
         StateMachine.add_auto("CLEAN_EPISODE_REPEAT3", control_flow.ResetRepeat(episode_repeat_gate3), ["succeeded"])
-        StateMachine.add_auto("INITIALIZE_ROBOT3", states.TeleportRobot(Point(33.5, 101.8, 0)), ["succeeded"])
+        StateMachine.add_auto("INITIALIZE_ROBOT3", states.TeleportRobot(Point(39.3, 105, 0)), ["succeeded"])
         StateMachine.add_auto("CLEAR_COSTMAP3", states.ClearCostmap(), ["succeeded"])
         StateMachine.add_auto("CLOSE_DOORS3", states.CloseDoor(), ["succeeded"])
-        control_flow.inject_userdata_auto("INJECT_LOCATION3", "location", target)
+        control_flow.inject_userdata_auto("INJECT_LOCATION3", "location", "l3_414a")
         StateMachine.add('GOTO_LOCATION3', task_machine.generate_goal_based_task_sm(
             goal_formulators.GoToRoomOrLocationName(ltmc), ["location"]),
             transitions={"succeeded": "EPISODE_REPEAT3",
