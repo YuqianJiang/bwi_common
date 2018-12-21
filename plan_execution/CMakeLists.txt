@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(plan_execution)
 
-## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wreturn-type")
+
+if("$ENV{ROS_DISTRO}" STREQUAL "indigo")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+else()
+    set(CMAKE_CXX_STANDARD 11)
+endif()
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -160,11 +163,6 @@ install(TARGETS plan_execution
 ## Testing ##
 #############
 
-## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_plan_execution.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
+catkin_add_gtest(test_actasp test/actasp.cpp)
+add_dependencies(test_actasp ${plan_execution_EXPORTED_TARGETS})
+target_link_libraries(test_actasp actasp ${catkin_LIBRARIES})
