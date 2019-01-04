@@ -16,18 +16,15 @@ struct Clingo5_2 : public FilteringQueryGenerator {
   ) noexcept;
 
   std::list<actasp::AnswerSet> minimalPlanQuery(const std::vector<actasp::AspRule>& goalRules,
-      bool filterActions,
       unsigned int  max_plan_length,
       unsigned int answerset_number) const noexcept;
 
   std::list<actasp::AnswerSet> lengthRangePlanQuery(const std::vector<actasp::AspRule>& goalRules,
-      bool filterActions,
       unsigned int min_plan_length,
       unsigned int  max_plan_length,
       unsigned int answerset_number) const noexcept;
 
   actasp::AnswerSet optimalPlanQuery(const std::vector<actasp::AspRule>& goalRules,
-      bool filterActions,
       unsigned int  max_plan_length,
       unsigned int answerset_number,
       bool minimum) const noexcept;

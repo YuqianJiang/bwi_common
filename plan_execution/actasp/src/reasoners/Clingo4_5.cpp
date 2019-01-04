@@ -342,7 +342,6 @@ static list<AnswerSet> filterPlans(const list<AnswerSet> &unfiltered_plans, cons
 }
 
 std::list<actasp::AnswerSet> Clingo4_5::minimalPlanQuery(const std::vector<actasp::AspRule>& goalRules,
-    bool filterActions,
     unsigned int  max_plan_length,
     unsigned int answerset_number) const noexcept {
 
@@ -350,10 +349,7 @@ std::list<actasp::AnswerSet> Clingo4_5::minimalPlanQuery(const std::vector<actas
 
   list<AnswerSet> answers = genericQuery(planquery,0,max_plan_length,"planQuery",answerset_number);
 
-  if (filterActions)
-    return filterPlans(answers,allActions);
-  else
-    return answers;
+  return answers;
 
 }
 
@@ -369,7 +365,6 @@ struct MaxTimeStepLessThan4_5 {
 };
 
 std::list<actasp::AnswerSet> Clingo4_5::lengthRangePlanQuery(const std::vector<actasp::AspRule>& goalRules,
-    bool filterActions,
     unsigned int min_plan_length,
     unsigned int  max_plan_length,
     unsigned int answerset_number) const noexcept {
@@ -385,15 +380,11 @@ std::list<actasp::AnswerSet> Clingo4_5::lengthRangePlanQuery(const std::vector<a
 
   allplans.remove_if(MaxTimeStepLessThan4_5(min_plan_length));
 
-  if (filterActions)
-    return filterPlans(allplans,allActions);
-  else
-    return allplans;
+  return allplans;
 
 }
 
 actasp::AnswerSet Clingo4_5::optimalPlanQuery(const std::vector<actasp::AspRule>& goalRules,
-    bool filterActions,
     unsigned int  max_plan_length,
     unsigned int answerset_number,
     bool minimum) const noexcept {
@@ -404,13 +395,7 @@ actasp::AnswerSet Clingo4_5::optimalPlanQuery(const std::vector<actasp::AspRule>
 
   AnswerSet optimalPlan = readOptimalAnswerSet(outputFilePath,minimum);
 
-  if (filterActions) {
-    list<AnswerSet> sets;
-    sets.push_back(optimalPlan);
-    return *(filterPlans(sets,allActions).begin());
-  }
-  else
-    return optimalPlan;
+  return optimalPlan;
 }
 
 AnswerSet Clingo4_5::currentStateQuery(const std::vector<actasp::AspRule>& query) const noexcept {

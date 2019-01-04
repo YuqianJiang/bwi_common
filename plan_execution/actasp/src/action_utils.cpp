@@ -66,4 +66,19 @@ std::set<AspFluent> extractActions(const std::set<AspFluent>& fluents, const Act
   return actions;
 }
 
+list<AnswerSet> filterPlans(const list<AnswerSet> unfiltered_plans, const ActionSet& allActions) {
+
+  list<AnswerSet> plans;
+
+  list<AnswerSet>::const_iterator ans = unfiltered_plans.begin();
+  for (; ans != unfiltered_plans.end(); ++ans) {
+    list<AspFluent> actionsOnly;
+    remove_copy_if(ans->getFluents().begin(),ans->getFluents().end(),back_inserter(actionsOnly),not1(IsAnAction(allActions)));
+
+    plans.push_back(AnswerSet(actionsOnly.begin(), actionsOnly.end()));
+  }
+
+  return plans;
+}
+
 }

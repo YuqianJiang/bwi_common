@@ -40,6 +40,8 @@ std::set<AspFluent> extractActions(const std::set<AspFluent>& fluents, const Act
 
 AnswerSet planToAnswerSet(const std::list<std::unique_ptr<Action>> &plan);
 
+std::list<AnswerSet> filterPlans(const std::list<AnswerSet> unfiltered_plans, const ActionSet& allActions);
+
 // DEPRECATED
 ActionSet actionMapToSet(const std::map<std::string, Action *> &actionMap);
 

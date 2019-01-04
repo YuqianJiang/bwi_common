@@ -10,15 +10,14 @@ struct Clingo3 : public QueryGenerator {
           const std::vector<std::string>& linkFiles,
           const std::vector<std::string>& copyFiles,
           const ActionSet& actions,
-          unsigned int max_time = 0
+          unsigned int max_time = 0,
+          bool filterActions = false
   ) noexcept;
   std::list<actasp::AnswerSet> minimalPlanQuery(const std::vector<actasp::AspRule>& goalRules,
-      bool filterActions,
       unsigned int  max_plan_length,
       unsigned int answerset_number) const noexcept;
 
   std::list<actasp::AnswerSet> lengthRangePlanQuery(const std::vector<actasp::AspRule>& goalRules,
-      bool filterActions,
       unsigned int min_plan_length,
       unsigned int  max_plan_length,
       unsigned int answerset_number) const noexcept;
@@ -54,14 +53,14 @@ private:
                                  const std::string& fileName,
                               unsigned int answerSetsNumber) const noexcept;
 
-  std::string generatePlanQuery(std::vector<actasp::AspRule> goalRules,
-                                bool filterActions) const noexcept;
+  std::string generatePlanQuery(std::vector<actasp::AspRule> goalRules) const noexcept;
 
   std::string incrementalVar;
   std::string actionFilter;
   unsigned int max_time;
   std::vector<std::string> linkFiles;
   std::vector<std::string> copyFiles;
+  bool filterActions;
 
 
 };

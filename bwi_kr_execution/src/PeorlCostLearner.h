@@ -7,7 +7,7 @@
 #include <actasp/AspTask.h>
 #include <actasp/executors/PeorlPlanExecutor.h>
 #include "actions/ActionCostEstimator.h"
-#include <knowledge_representation/Instance.h>
+#include <knowledge_representation/LTMCInstance.h>
 
 #include <fstream>
 

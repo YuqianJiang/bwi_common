@@ -22,10 +22,12 @@ Clingo3::Clingo3(const std::string& incrementalVar,
                  const std::vector<std::string>& linkFiles,
                  const std::vector<std::string>& copyFiles,
                  const ActionSet& actions,
-                 unsigned int max_time
+                 unsigned int max_time,
+                 bool filterActions
         ) noexcept :
   incrementalVar(incrementalVar),
   max_time(max_time),
+  filterActions(filterActions),
   linkFiles(linkFiles),
   copyFiles(copyFiles),
   actionFilter() {
@@ -166,8 +168,7 @@ static std::list<actasp::AnswerSet> readAnswerSets(const std::string& filePath) 
   return allSets;
 }
 
-string Clingo3::generatePlanQuery(std::vector<actasp::AspRule> goalRules,
-                                bool filterActions) const noexcept {
+string Clingo3::generatePlanQuery(std::vector<actasp::AspRule> goalRules) const noexcept {
   stringstream goal;
   goal << "#volatile " << incrementalVar << "." << endl;
   //I don't like this -1 too much, but it makes up for the incremental variable starting at 1
@@ -182,11 +183,10 @@ string Clingo3::generatePlanQuery(std::vector<actasp::AspRule> goalRules,
 
 
 std::list<actasp::AnswerSet> Clingo3::minimalPlanQuery(const std::vector<actasp::AspRule>& goalRules,
-    bool filterActions,
     unsigned int  max_plan_length,
     unsigned int answerset_number) const noexcept {
 
-  string planquery = generatePlanQuery(goalRules, filterActions);
+  string planquery = generatePlanQuery(goalRules);
 
   return genericQuery(planquery,0,max_plan_length,"planQuery",answerset_number);
 
@@ -204,12 +204,11 @@ struct MaxTimeStepLessThan3 {
 };
 
 std::list<actasp::AnswerSet> Clingo3::lengthRangePlanQuery(const std::vector<actasp::AspRule>& goalRules,
-    bool filterActions,
     unsigned int min_plan_length,
     unsigned int  max_plan_length,
     unsigned int answerset_number) const noexcept {
 
-  string planquery = generatePlanQuery(goalRules, filterActions);
+  string planquery = generatePlanQuery(goalRules);
 
   std::list<actasp::AnswerSet> allplans =  genericQuery(planquery,max_plan_length,max_plan_length,"planQuery",answerset_number);
 
@@ -241,7 +240,7 @@ std::list<actasp::AnswerSet> Clingo3::monitorQuery(const std::vector<actasp::Asp
 
   //   clock_t kr1_begin = clock();
 
-  string planQuery = generatePlanQuery(goalRules,true);
+  string planQuery = generatePlanQuery(goalRules);
 
   stringstream monitorQuery(planQuery, ios_base::app | ios_base::out);
 

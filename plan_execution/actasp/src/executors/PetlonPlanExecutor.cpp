@@ -38,7 +38,7 @@ void PetlonPlanExecutor::computePlan() {
   bool evaluation = true;
 
   while (evaluation) {
-    AnswerSet answer = optimal_planner_.computeOptimalPlan(goalRules, 3, true, false);
+    AnswerSet answer = optimal_planner_.computeOptimalPlan(goalRules, 3, true);
     //AnswerSet answer = optimal_planner_.computePlan(goalRules);
     plan = answer.instantiateActions(actionMap, resourceManager);
 

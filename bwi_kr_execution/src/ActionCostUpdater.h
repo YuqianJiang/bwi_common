@@ -5,7 +5,7 @@
 #include <actasp/action_utils.h>
 #include <actasp/state_utils.h>
 #include "actions/ActionCostEstimator.h"
-#include <knowledge_representation/Instance.h>
+#include <knowledge_representation/LTMCInstance.h>
 
 #include <fstream>
 

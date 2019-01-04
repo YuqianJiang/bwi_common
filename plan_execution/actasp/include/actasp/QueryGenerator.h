@@ -16,18 +16,15 @@ namespace actasp {
 struct QueryGenerator {
   
   virtual std::list<actasp::AnswerSet> minimalPlanQuery(const std::vector<actasp::AspRule>& goalRules,
-                                         bool filterActions, 
                                          unsigned int  max_plan_length,
                                          unsigned int answerset_number) const noexcept = 0;
                                          
   virtual std::list<actasp::AnswerSet> lengthRangePlanQuery(const std::vector<actasp::AspRule>& goalRules,
-                                         bool filterActions, 
                                          unsigned int min_plan_length,
                                          unsigned int  max_plan_length,
                                          unsigned int answerset_number) const noexcept = 0;
 
   virtual actasp::AnswerSet optimalPlanQuery(const std::vector<actasp::AspRule>& goalRules,
-                                         bool filterActions,
                                          unsigned int  max_plan_length,
                                          unsigned int answerset_number,
                                          bool minimum) const noexcept = 0;

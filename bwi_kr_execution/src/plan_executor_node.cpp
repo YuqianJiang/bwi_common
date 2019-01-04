@@ -9,6 +9,7 @@
 #include "actasp/PlanningObserver.h"
 #include "actasp/AnswerSet.h"
 #include <actasp/reasoners/Clingo.h>
+#include <actasp/reasoners/Reasoner.h>
 
 #include "plan_execution/ExecutePlanAction.h"
 #include <plan_execution/PlanExecutorNode.h>
@@ -140,7 +141,7 @@ int main(int argc, char**argv) {
                                                                 actionMapToSet(actions),
                                                                 PLANNER_TIMEOUT);
   }
-  unique_ptr<actasp::AspKR> planningReasoner = unique_ptr<actasp::AspKR>(new RemoteReasoner(generator, MAX_N, actionMapToSet(actions)));
+  unique_ptr<actasp::AspKR> planningReasoner = unique_ptr<actasp::AspKR>(new Reasoner(generator, MAX_N, actionMapToSet(actions)));
 
   ReplanningPlanExecutor* replanner;
   unique_ptr<TaskPlanTracker> tracker = unique_ptr<TaskPlanTracker>(new TaskPlanTracker());
