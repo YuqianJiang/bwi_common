@@ -3,12 +3,14 @@ from plan_execution.msg import ExecutePlanAction
 from smach import State
 from smach_ros import SimpleActionState, ServiceState
 from bwi_msgs.srv import RobotTeleporterInterface, RobotTeleporterInterfaceRequest, DoorHandlerInterface, DoorHandlerInterfaceRequest
-from geometry_msgs.msg import PoseWithCovarianceStamped, Point
+from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, Point
 from std_srvs.srv import Empty, EmptyRequest
+from move_base_msgs.msg import MoveBaseAction
 
 from plan_execution.helpers import *
 
-topics = {'plan_execution': "/plan_executor/execute_plan"}
+topics = {'plan_execution': "/plan_executor/execute_plan",
+        'move_base': "/move_base"}
 
 
 class Wait(State):
@@ -100,6 +102,30 @@ class TeleportRobot(ServiceState):
         rospy.sleep(1)
         self.pub.publish(pose)
         rospy.sleep(1)
+
+class MoveToPosition(SimpleActionState):
+    #def __init__(self, position=Point(15, 107, 0)):
+    def __init__(self, position=Point(-14.45, -6.80, 0)):
+        SimpleActionState.__init__(self, topics["move_base"],
+                                   MoveBaseAction,
+                                   goal_cb=self.goal_cb,
+                                   result_cb=self.result_cb,
+                                   input_keys=['goal'],
+                                   output_keys=['result'])
+        self.position = position
+
+    def goal_cb(self, userdata, goal):
+        goal.target_pose.header.stamp = rospy.Time.now()
+        goal.target_pose.header.frame_id = "/level_mux_map"
+        goal.target_pose.pose.position = self.position
+        goal.target_pose.pose.orientation.x = 0.0
+        goal.target_pose.pose.orientation.y = 0.0
+        goal.target_pose.pose.orientation.z = 0.0
+        goal.target_pose.pose.orientation.w = 1.0
+
+
+    def result_cb(self, userdata, state, result):
+        print (state, result)
 
 class ClearCostmap(ServiceState):
     def __init__(self):

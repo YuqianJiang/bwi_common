@@ -38,9 +38,9 @@ def main():
         
         episode_repeat_gate = control_flow.RepeatN(10)
         StateMachine.add_auto("CLEAN_EPISODE_REPEAT", control_flow.ResetRepeat(episode_repeat_gate), ["succeeded"])
-        StateMachine.add_auto("INITIALIZE_ROBOT", states.TeleportRobot(), ["succeeded"])
-        StateMachine.add_auto("CLEAR_COSTMAP", states.ClearCostmap(), ["succeeded"])
-        StateMachine.add_auto("CLOSE_DOORS", states.CloseDoor(), ["succeeded"])
+        StateMachine.add_auto("INITIALIZE_ROBOT", states.MoveToPosition(), ["succeeded"])
+        #StateMachine.add_auto("CLEAR_COSTMAP", states.ClearCostmap(), ["succeeded"])
+        #StateMachine.add_auto("CLOSE_DOORS", states.CloseDoor(), ["succeeded"])
         control_flow.inject_userdata_auto("INJECT_LOCATION", "location", target)
         StateMachine.add('GOTO_LOCATION', task_machine.generate_goal_based_task_sm(
             goal_formulators.GoToRoomOrLocationName(ltmc), ["location"]),
