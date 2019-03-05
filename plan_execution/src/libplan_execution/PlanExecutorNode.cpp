@@ -1,4 +1,8 @@
 #include "plan_execution/msgs_utils.h"
+<<<<<<< HEAD
+=======
+#include "actasp/reasoners/Reasoner.h"
+>>>>>>> architecture-update
 
 #include <actasp/action_utils.h>
 #include <actasp/PlanExecutor.h>
