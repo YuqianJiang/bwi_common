@@ -135,20 +135,24 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
     float reward;
     if (succeeded) {
       reward = -(action_end - action_start).toSec();
-    
-      std::cout << "Reward is " << reward << std::endl;
-
-      std::vector<std::string> prev_state;
-      transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(prev_state), 
-                    [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
-
-      currentFluents = getStateFluents();
-      std::vector<std::string> state;
-      transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(state), 
-                    [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
-      
-      learners_map[goal].attr("learn")(prev_state, state, action.toStringNoTimeStep(), reward);
     }
+    else {
+      reward = -1000;
+    }
+    
+    std::cout << "Reward is " << reward << std::endl;
+
+    std::vector<std::string> prev_state;
+    transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(prev_state), 
+                  [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
+
+    currentFluents = getStateFluents();
+    std::vector<std::string> state;
+    transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(state), 
+                  [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
+      
+    learners_map[goal].attr("learn")(prev_state, state, action.toStringNoTimeStep(), reward);
+
 
   }
 

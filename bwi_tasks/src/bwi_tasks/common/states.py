@@ -105,7 +105,7 @@ class TeleportRobot(ServiceState):
 
 class MoveToPosition(SimpleActionState):
     #def __init__(self, position=Point(15, 107, 0)):
-    def __init__(self, position=Point(-14.45, -6.80, 0)):
+    def __init__(self, position=Point(-13.8, -7.15, 0)):
         SimpleActionState.__init__(self, topics["move_base"],
                                    MoveBaseAction,
                                    goal_cb=self.goal_cb,

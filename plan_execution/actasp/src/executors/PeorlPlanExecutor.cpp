@@ -42,20 +42,26 @@ void PeorlPlanExecutor::computePlan() {
       std::cout << "!!!!!!No better plan!!!!!" << std::endl;
       if (!tracker.getCurrentPlan().isSatisfied()) {
         hasFailed = true;
+	std::cout << "No valid plan!!!!!!" << std::endl;
       }
       else { 
         plan = tracker.getCurrentPlan().instantiateActions(actionMap, resourceManager);
+	std::cout << "Using last plan!!!!!!" << std::endl;
       }
-      return;
+
+      break;
     }
 
     for_each(planningObservers.begin(), planningObservers.end(), NotifyNewPlan(answer));
 
     tracker.setPlan(answer);
 
+    hasFailed = false;
+
   }
 
   actionCounter = 0;
+  newAction = true;
   
 }
 
