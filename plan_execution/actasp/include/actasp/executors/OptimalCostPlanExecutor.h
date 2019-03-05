@@ -5,22 +5,22 @@
 
 namespace actasp {
 
-class PetlonPlanExecutor : public ReplanningPlanExecutor {
+class OptimalCostPlanExecutor : public ReplanningPlanExecutor {
 
 public:
 
-  PetlonPlanExecutor(AspKR &reasoner,
+  OptimalCostPlanExecutor(AspKR &reasoner,
                      MultiPlanner &planner,
                      const std::map<std::string, ActionFactory> &actionMap,
                      const std::set<std::string> &evaluableActionSet,
                      const std::set<std::string> &stateFluentSet,
                      actasp::ResourceManager &resourceManager,
-                     bool use_motion_cost = true
+                     bool evaluate_actions = true
   ) noexcept(false);
 
   void setGoal(const std::vector<actasp::AspRule> &goalRules) noexcept;
 
-  ~PetlonPlanExecutor();
+  ~OptimalCostPlanExecutor();
 
 
 private:
@@ -30,7 +30,7 @@ private:
   std::set<std::string> evaluated_pairs_;
   std::set<std::string> evaluableActionSet;
   std::set<std::string> stateFluentSet;
-  bool use_motion_cost;
+  bool evaluate_actions_;
 
 
 };

@@ -5,7 +5,7 @@
 #include <actasp/action_utils.h>
 #include <actasp/state_utils.h>
 #include <actasp/AspTask.h>
-#include <actasp/executors/PeorlPlanExecutor.h>
+#include <actasp/executors/IterativePlanningPlanExecutor.h>
 #include "actions/ActionCostEstimator.h"
 #include <knowledge_representation/LTMCInstance.h>
 

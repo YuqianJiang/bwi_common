@@ -25,11 +25,11 @@ struct TaskPlanTracker {
   AspTask currentTask;
 };
 
-class PeorlPlanExecutor : public ReplanningPlanExecutor {
+class IterativePlanningPlanExecutor : public ReplanningPlanExecutor {
 
 public:
 
-  PeorlPlanExecutor(AspKR &reasoner,
+  IterativePlanningPlanExecutor(AspKR &reasoner,
                      MultiPlanner &planner,
                      const std::map<std::string, ActionFactory> &actionMap,
                      const std::set<std::string> &evaluableActionSet,
@@ -40,7 +40,7 @@ public:
 
   void setGoal(const std::vector<actasp::AspRule> &goalRules) noexcept;
 
-  ~PeorlPlanExecutor();
+  ~IterativePlanningPlanExecutor();
 
 
 private:

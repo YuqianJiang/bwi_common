@@ -3,8 +3,8 @@
 
 #include "actasp/action_utils.h"
 #include "actasp/executors/ReplanningPlanExecutor.h"
-#include "actasp/executors/PetlonPlanExecutor.h"
-#include "actasp/executors/PeorlPlanExecutor.h"
+#include "actasp/executors/OptimalCostPlanExecutor.h"
+#include "actasp/executors/IterativePlanningPlanExecutor.h"
 #include "actasp/ExecutionObserver.h"
 #include "actasp/PlanningObserver.h"
 #include "actasp/AnswerSet.h"
@@ -147,10 +147,10 @@ int main(int argc, char**argv) {
   unique_ptr<TaskPlanTracker> tracker = unique_ptr<TaskPlanTracker>(new TaskPlanTracker());
 
   if (!use_learning) {
-    replanner = new PetlonPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager, use_motion_cost);
+    replanner = new OptimalCostPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager, use_motion_cost);
   }
   else {
-    replanner = new PeorlPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager, *tracker);
+    replanner = new IterativePlanningPlanExecutor(*planningReasoner, *planningReasoner, actions, evaluable_actions, state_fluents, *resourceManager, *tracker);
   }
 
   PlanExecutor* executor = replanner;

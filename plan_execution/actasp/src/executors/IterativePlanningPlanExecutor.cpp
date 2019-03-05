@@ -1,4 +1,4 @@
-#include <actasp/executors/PeorlPlanExecutor.h>
+#include <actasp/executors/IterativePlanningPlanExecutor.h>
 
 #include <actasp/AspKR.h>
 #include <actasp/ExecutionObserver.h>
@@ -12,7 +12,7 @@ using namespace std;
 
 namespace actasp {
 
-PeorlPlanExecutor::PeorlPlanExecutor(AspKR &reasoner,
+IterativePlanningPlanExecutor::IterativePlanningPlanExecutor(AspKR &reasoner,
                                        MultiPlanner &planner,
                                        const std::map<std::string, ActionFactory> &actionMap,
                                        const std::set<std::string> &evaluableActionSet,
@@ -28,9 +28,9 @@ PeorlPlanExecutor::PeorlPlanExecutor(AspKR &reasoner,
 
 }
 
-PeorlPlanExecutor::~PeorlPlanExecutor() = default;
+IterativePlanningPlanExecutor::~IterativePlanningPlanExecutor() = default;
 
-void PeorlPlanExecutor::computePlan() {
+void IterativePlanningPlanExecutor::computePlan() {
   isGoalReached = kr.currentStateQuery(goalRules).isSatisfied();
 
   if (isGoalReached) return;
@@ -39,16 +39,15 @@ void PeorlPlanExecutor::computePlan() {
     AnswerSet answer = planner.computePlan(goalRules);
 
     if (!answer.isSatisfied()) {
-      std::cout << "!!!!!!No better plan!!!!!" << std::endl;
+      //std::cout << "!!!!!!No better plan!!!!!" << std::endl;
       if (!tracker.getCurrentPlan().isSatisfied()) {
         hasFailed = true;
-	std::cout << "No valid plan!!!!!!" << std::endl;
+        //std::cout << "No valid plan!!!!!!" << std::endl;
       }
       else { 
         plan = tracker.getCurrentPlan().instantiateActions(actionMap, resourceManager);
-	std::cout << "Using last plan!!!!!!" << std::endl;
+        std::cout << "Using last plan!!!!!!" << std::endl;
       }
-
       break;
     }
 
@@ -65,7 +64,7 @@ void PeorlPlanExecutor::computePlan() {
   
 }
 
-void PeorlPlanExecutor::setGoal(const std::vector<actasp::AspRule> &goalRules) noexcept {
+void IterativePlanningPlanExecutor::setGoal(const std::vector<actasp::AspRule> &goalRules) noexcept {
 
   this->goalRules = goalRules;
 
