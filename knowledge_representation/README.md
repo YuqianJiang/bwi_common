@@ -9,12 +9,13 @@ Mechanisms for storing information about the world, and for querying this inform
 Try running these commands through, one at a time. Leave the root password blank
 
     cd /tmp
-    wget https://dev.mysql.com/get/mysql-apt-config_0.8.10-1_all.deb -O sql.deb
+    wget https://dev.mysql.com/get/mysql-apt-config_0.8.12-1_all.deb -O sql.deb
     sudo dpkg -i sql.deb
     sudo apt update
     sudo apt install -y mysql-server mysql-shell
     git clone https://github.com/mysql/mysql-connector-cpp.git
     cd mysql-connector-cpp
+    git checkout tags/8.0.15
     mkdir build
     cd build
     cmake ..
@@ -23,7 +24,7 @@ Try running these commands through, one at a time. Leave the root password blank
     sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY ''"
     sudo mysql -u root -p -e "INSTALL PLUGIN mysqlx SONAME 'mysqlx.so';"
     roscd
-    cd ../src/Robocup_Integrated_Systems/villa_krr/knowledge_representation
+    cd ../src/bwi_common/knowledge_representation
     mysql -u root -p -e "source sql/create_database.sql"
     
 ### Manual
