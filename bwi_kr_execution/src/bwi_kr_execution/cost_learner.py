@@ -25,13 +25,17 @@ class CostLearner():
 		self.q_table = np.zeros((nS, nA))
 		self.ro_table = np.zeros((nS, nA))
 		self.cost_table = np.zeros((nS, nA))
+		self.avg_cost_table = np.zeros((nS, nA))
+		self.total_cost_table = np.zeros((nS, nA))
+		self.count_table = np.zeros((nS, nA))
 		self.state_list = []
 		self.action_list = []
 		self.sa_set = set()
 		self.state = []
 		self.tables = {'cost_table' : self.cost_table,
-									 'q_table' : self.q_table,
-									 'ro_table' : self.ro_table}
+					   'q_table' : self.q_table,
+					   'ro_table' : self.ro_table,
+					   'avg_cost_table' : self.avg_cost_table}
 
 	def encode_state(self, state_factored):
 
@@ -58,15 +62,15 @@ class CostLearner():
 		for (state,action) in self.sa_set:
 			actionname = self.action_list[action]
 			symbolicstate = self.state_list[state]
-			rule += "c(("+','.join(str(e) for e in symbolicstate) +"),"+actionname+","+str(-int(round(table[state,action])))+").\n"
+			rule += "c(("+','.join(str(e) for e in symbolicstate) +"),"+actionname+","+str(int(round(table[state,action])))+").\n"
 
 		#print rule
 		cost_file.write(rule)
 		cost_file.close()
 
-	def learn(self, state, state_next, action, reward):
+	def learn(self, state, state_next, action, cost):
 
-		reward = float(reward)
+		cost = float(cost)
 
 		state_idx = self.encode_state(state)
 		state_next_idx = self.encode_state(state_next)
@@ -75,12 +79,16 @@ class CostLearner():
 		if (state_idx, action_idx) not in self.sa_set:
 			self.sa_set.add((state_idx,action_idx))
 
-		self.cost_table[state_idx, action_idx] = reward
+		self.cost_table[state_idx, action_idx] = cost
 
-		q_update = 0.1 * (reward - self.ro_table[state_idx,action_idx] + max(self.q_table[state_next_idx, :]) - self.q_table[state_idx, action_idx])
+		self.total_cost_table[state_idx, action_idx] += cost
+		self.count_table[state_idx, action_idx] += 1
+		self.avg_cost_table[state_idx, action_idx] = self.total_cost_table[state_idx, action_idx] / self.count_table[state_idx, action_idx]
+
+		q_update = 0.1 * (cost - self.ro_table[state_idx,action_idx] + max(self.q_table[state_next_idx, :]) - self.q_table[state_idx, action_idx])
 		self.q_table[state_idx, action_idx] += q_update
 
-		ro_update = 0.5 * (reward + max(self.q_table[state_next_idx, :]) - max(self.q_table[state_idx, :])- self.ro_table[state_idx, action_idx])
+		ro_update = 0.5 * (cost + max(self.q_table[state_next_idx, :]) - max(self.q_table[state_idx, :])- self.ro_table[state_idx, action_idx])
 		self.ro_table[state_idx, action_idx] += ro_update
 
 		#print "q value:", self.q_table[state_idx, action_idx]
@@ -89,19 +97,19 @@ class CostLearner():
 		#print "state_list", self.state_list
 		#print "action_list", self.action_list
 
-	def constrain_plan_quality(self, path):
-
+	def constrain_plan_quality(self, path, table_name):
+		table = self.tables[table_name]
 		plan_quality = 0
 		for (state,action) in path:
 			state_idx = self.encode_state(state)
 			action_idx = self.encode_action(action)
-			plan_quality += int(round(self.ro_table[state_idx, action_idx]))
+			plan_quality += int(round(table[state_idx, action_idx]))
 
 		constraint_file = open("/tmp/constraint.asp","w")
 
 		#rule = "#program check(n).\n" + "#external query(n).\n"
 		rule = "#program check(n).\n#external query(n).\n"
-		rule += ":- C >= " + str(-plan_quality) + ", total_cost(C, n).\n"
+		rule += ":- C >= " + str(plan_quality) + ", total_cost(C, n).\n"
 		print(rule)
 		constraint_file.write(rule)
 		constraint_file.close()

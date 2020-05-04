@@ -20,6 +20,7 @@
 #include "BwiResourceManager.h"
 #include "ActionCostUpdater.h"
 #include "PeorlCostLearner.h"
+#include "AverageCostLearner.h"
 
 #include <actionlib/server/simple_action_server.h>
 
@@ -159,7 +160,8 @@ int main(int argc, char**argv) {
   std::function<void()> function = std::function<void()>(updateFacts);
   KnowledgeUpdater updating_observer(function, *resourceManager);
   ActionCostUpdater* action_cost_updater;
-  PeorlCostLearner* cost_learner;
+  //PeorlCostLearner* cost_learner;
+  AverageCostLearner* cost_learner;
 
   replanner->addPlanningObserver(observer);
   executor->addExecutionObserver(observer);
@@ -173,7 +175,7 @@ int main(int argc, char**argv) {
     executor->addExecutionObserver(*action_cost_updater);
   }
   else {
-    cost_learner = new PeorlCostLearner(actions, evaluable_actions, state_fluents, *resourceManager, *tracker, use_motion_cost);
+    cost_learner = new AverageCostLearner(actions, evaluable_actions, state_fluents, *resourceManager, *tracker, use_motion_cost);
     replanner->addPlanningObserver(*cost_learner);
     executor->addExecutionObserver(*cost_learner);
   }

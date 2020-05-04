@@ -53,7 +53,7 @@
 #include <cmath>
 #include <pcl/impl/point_types.hpp>
 
-#define SCALAR 1.2
+#define SCALAR 1.5
 
 using std::vector;
 
@@ -373,6 +373,7 @@ namespace bwi_logical_translator {
     float orientation_to_door = atan2f(diff_pt.y, diff_pt.x);
     while (orientation_to_door > yaw + M_PI) orientation_to_door -= 2*M_PI;
     while (orientation_to_door <= yaw - M_PI) orientation_to_door += 2*M_PI;
+    ROS_INFO_STREAM("Orientation to door is " << orientation_to_door << " yaw is " << yaw);
     return std::fabs(orientation_to_door - yaw) <= M_PI / 3;
 
   }

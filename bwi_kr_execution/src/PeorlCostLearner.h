@@ -96,7 +96,7 @@ struct PeorlCostLearner : public actasp::ExecutionObserver, public actasp::Plann
 
           float cost = estimator.getActionCost(*actions.begin());
 
-          learner.attr("learn")(state, state_next, action, -cost);
+          learner.attr("learn")(state, state_next, action, cost);
         }
         /*else {
           ROS_INFO_STREAM(actions.begin()->getName() << " not evaluable");

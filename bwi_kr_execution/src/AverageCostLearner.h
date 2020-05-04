@@ -4,6 +4,7 @@
 #include <actasp/ResourceManager.h>
 #include <actasp/action_utils.h>
 #include <actasp/state_utils.h>
+#include <actasp/AspTask.h>
 #include "actions/ActionCostEstimator.h"
 #include <knowledge_representation/Instance.h>
 
@@ -23,20 +24,25 @@ namespace bwi_krexec {
 
 #pragma GCC visibility push(hidden)
 
-struct ActionCostUpdater : public actasp::ExecutionObserver, public actasp::PlanningObserver {
+struct AverageCostLearner : public actasp::ExecutionObserver, public actasp::PlanningObserver {
 
-  explicit ActionCostUpdater(const std::map<std::string, actasp::ActionFactory> &actionMap, 
+  explicit AverageCostLearner(const std::map<std::string, actasp::ActionFactory> &actionMap, 
                             const std::set<std::string> &evaluableActionSet, 
                             const std::set<std::string> &stateFluentSet,
                             actasp::ResourceManager &resourceManager,
-                            bool use_motion_cost = true):
+                            actasp::TaskPlanTracker &taskPlanTracker,
+			                      bool use_motion_cost = true):
     actionMap(actionMap),
     evaluableActionSet(evaluableActionSet),
     stateFluentSet(stateFluentSet),
     resourceManager(resourceManager),
+    tracker(taskPlanTracker),
     use_motion_cost(use_motion_cost),
     ltmc(dynamic_cast<BwiResourceManager&>(resourceManager).ltmc),
     guard(),
+    learners_map(),
+    goal(),
+    currentFluents(),
     action_start(),
     planning_start(),
     execution_start(),
@@ -48,20 +54,28 @@ struct ActionCostUpdater : public actasp::ExecutionObserver, public actasp::Plan
       py::module sys = py::module::import("sys");
       sys.attr("path").attr("append")(path);
 
-      py::object learner_class = py::module::import("cost_learner").attr("CostLearner");
-      learner = learner_class();
+      learner_class = py::module::import("cost_learner").attr("CostLearner");
+      //learner = learner_class();
 
       auto t = std::time(nullptr);
       auto tm = *std::localtime(&t);
       std::stringstream stampstream;
       stampstream << std::put_time(&tm, "%d-%m-%Y_%H-%M-%S");
-      auto results_path = "/tmp/results/results_petlon_" + stampstream.str() + ".csv";
+      std::string results_path = "~/tmp_l_results";
+      if (use_motion_cost) {
+        results_path = "/tmp/tmp_l_results/results_" + stampstream.str() + ".csv";
+      }
+      else {
+        results_path = "/tmp/tp_l_results/results_" + stampstream.str() + ".csv";
+      }
 
       fs.open(results_path, std::ios::out);
     }
 
   void planChanged(const actasp::AnswerSet &newPlan) noexcept override {
       ActionCostEstimator estimator(resourceManager);
+      py::object& learner = learners_map[goal];
+      std::vector<std::pair<std::vector<std::string>, std::string>> path;
 
       for (int i = 0; i < newPlan.maxTimeStep(); ++i) {
         auto actions = extractActions(newPlan.getFluentsAtTime(i+1), actionMapToSet(actionMap));
@@ -72,18 +86,20 @@ struct ActionCostUpdater : public actasp::ExecutionObserver, public actasp::Plan
           continue;
         }
 
+        std::vector<std::string> state;
+        getStateAtTime(newPlan, i, state);
+
+        std::vector<std::string> state_next;
+        getStateAtTime(newPlan, i+1, state_next);
+
+        std::string action = actions.begin()->toStringNoTimeStep();
+
+        path.push_back({state, action});
+
         if ((use_motion_cost) && 
-           (evaluableActionSet.find(actions.begin()->getName()) != evaluableActionSet.end())) {
+	         (evaluableActionSet.find(actions.begin()->getName()) != evaluableActionSet.end())) {
 
           float cost = estimator.getActionCost(*actions.begin());
-
-          auto fluents = filterFluents(newPlan.getFluentsAtTime(i), stateFluentSet);
-          std::vector<std::string> state;
-          transform(fluents.begin(), fluents.end(), std::back_inserter(state), 
-                    [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
-
-          std::vector<std::string> state_next = {};
-          std::string action = actions.begin()->toStringNoTimeStep();
 
           learner.attr("learn")(state, state_next, action, cost);
         }
@@ -92,7 +108,10 @@ struct ActionCostUpdater : public actasp::ExecutionObserver, public actasp::Plan
         }*/
       }
 
-      learner.attr("table_to_asp")("cost_table");
+      learner.attr("table_to_asp")("avg_cost_table");
+
+      //constrain
+      learner.attr("constrain_plan_quality")(path, "avg_cost_table");
   }
 
   void actionStarted(const actasp::AspFluent &action) noexcept override {
@@ -100,25 +119,45 @@ struct ActionCostUpdater : public actasp::ExecutionObserver, public actasp::Plan
       execution_start = ros::Time::now();
       duration<double> time_span = duration_cast<duration<double>>(steady_clock::now() - planning_start);
       fs << (time_span.count()) << ",";
-      fs.flush();
-      ROS_INFO_STREAM("Planning time was: " << time_span.count());
       planning_finished = true;
     }
 
     actionLog << "\"" << action.toStringNoTimeStep() << "\"" << ",";
 
+    learners_map[goal].attr("clear_constraint")();
+
+    currentFluents = getStateFluents();
+
     action_start = ros::Time::now();
   }
 
   void actionTerminated(const actasp::AspFluent &action, bool succeeded) noexcept override {
+      //ROS_INFO_STREAM("Terminating execution: " << action.toString() << " Success:" << succeeded);
     ros::Time action_end = ros::Time::now();
 
     actionLog << (action_end - action_start).toSec() << ",";
+
+    float cost;
+    if (succeeded) {
+      cost = (action_end - action_start).toSec();
+    
+      std::cout << "Cost is " << cost << std::endl;
+
+      std::vector<std::string> prev_state;
+      transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(prev_state), 
+                    [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
+
+      currentFluents = getStateFluents();
+      std::vector<std::string> state;
+      transform(currentFluents.begin(), currentFluents.end(), std::back_inserter(state), 
+                    [](const actasp::AspFluent& fluent){return fluent.toStringNoTimeStep();});
+      
+      learners_map[goal].attr("learn")(prev_state, state, action.toStringNoTimeStep(), cost);
+    }
+
   }
 
   void planTerminated(const PlanStatus status, const actasp::AspFluent &final_action, const actasp::AnswerSet &plan_remainder) noexcept override {
-    ROS_INFO("Plan terminated");
-
     ros::Time execution_end = ros::Time::now();
 
     fs << actasp::ExecutionObserver::planStatusToString(status) << ",";
@@ -127,13 +166,47 @@ struct ActionCostUpdater : public actasp::ExecutionObserver, public actasp::Plan
     fs.flush();
 
     actionLog.str("");
+
+    learners_map[goal].attr("table_to_asp")("avg_cost_table");
   }
 
   void goalChanged(const std::vector<actasp::AspRule>& newGoalRules) noexcept override {
-    auto task = actasp::AspTask(getStateFluents(), newGoalRules);
-    std::cout << "The task is " << task.name << std::endl;
+    tracker.currentTask = actasp::AspTask(getStateFluents(), newGoalRules);
+    std::cout << "The task is " << tracker.currentTask.name << std::endl;
+
+    goal = tracker.currentTask.getGoalString();
+    if (learners_map.find(goal) == learners_map.end()) {
+      learners_map[goal] = learner_class();
+    }
+
+    std::vector<std::pair<std::vector<std::string>, std::string>> path;
+    auto& plan = tracker.getCurrentPlan();
+
+    if (!plan.isSatisfied()) {
+      learners_map[goal].attr("clear_constraint")();
+    }
+    else {
+      for (int i = 0; i < plan.maxTimeStep(); ++i) {
+        auto actions = extractActions(plan.getFluentsAtTime(i+1), actionMapToSet(actionMap));
+
+        // not likely to happen
+        if (actions.size() == 0) {
+          ROS_INFO_STREAM("Cannot find action at time step " << i);
+          continue;
+        }
+
+        std::vector<std::string> state;
+        getStateAtTime(plan, i, state);
+
+        std::string action = actions.begin()->toStringNoTimeStep();
+
+        path.push_back({state, action});
+      }
+
+      learners_map[goal].attr("constrain_plan_quality")(path, "avg_cost_table");
+    }
     
-    fs << "\"" << task.name << "\"" << ",";
+    fs << "\"" << tracker.currentTask.name << "\"" << ",";
     planning_finished = false;
     planning_start = steady_clock::now();
   }
@@ -170,21 +243,26 @@ private:
   std::set<std::string> evaluableActionSet;
   std::set<std::string> stateFluentSet;
   actasp::ResourceManager &resourceManager;
+  actasp::TaskPlanTracker &tracker;
   bool use_motion_cost;
+
   std::reference_wrapper<knowledge_rep::LongTermMemoryConduit> ltmc;
 
   std::map<std::string, float> cost_map_;
-  py::object learner;
   py::scoped_interpreter guard;
+  py::object learner_class;
 
+  std::map<std::string, py::object> learners_map;
+  std::string goal;
+  std::vector<actasp::AspFluent> currentFluents;
   ros::Time action_start;
+
   steady_clock::time_point planning_start;
   ros::Time execution_start;
   bool planning_finished;
 
   std::stringstream actionLog;
   std::fstream fs;
-
 
 };
 #pragma GCC visibility pop
